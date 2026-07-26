@@ -11,8 +11,8 @@ const Login = () => {
   const [locations, setLocations] = useState([]);
   const [loginType, setLoginType] = useState('Admin Login');
   
-  const [userId, setUserId] = useState('@finsen-admin');
-  const [password, setPassword] = useState('7Finsenxyz#');
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,14 +30,14 @@ const Login = () => {
     const type = e.target.value;
     setLoginType(type);
     if (type === 'Admin Login') {
-      setUserId('@finsen-admin');
-      setPassword('7Finsenxyz#');
+      setUserId('');
+      setPassword('');
     } else if (type === 'Store Incharge Login') {
-      setUserId('storeadmin');
-      setPassword('store123');
+      setUserId('');
+      setPassword('');
     } else {
-      setUserId('@finsen-user');
-      setPassword('7Userzyx#');
+      setUserId('');
+      setPassword('');
     }
   };
 

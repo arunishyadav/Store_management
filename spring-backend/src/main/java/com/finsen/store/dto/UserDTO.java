@@ -1,4 +1,4 @@
-spackage com.finsen.store.dto;
+package com.finsen.store.dto;
 
 import java.util.UUID;
 

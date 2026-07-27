@@ -137,7 +137,9 @@ const MISReport = () => {
               };
           }
       });
-      return Object.values(aggregatedData);
+      return Object.values(aggregatedData).filter(item => 
+          item.openingStock !== 0 || item.inward !== 0 || item.issued !== 0 || item.closingStock !== 0
+      );
   }, [materials, entries, startDate, endDate]);
 
   // Data for Charts

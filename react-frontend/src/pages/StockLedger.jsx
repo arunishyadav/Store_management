@@ -53,15 +53,11 @@ function AutocompleteEditCell(props) {
 
        if (lastEntry) {
           // Auto-fill other fields by setting their edit cell values
-          const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'productLength', 'innerDiameter', 'kg'];
+          const fieldsToCopy = ['productLength', 'innerDiameter', 'kg'];
           fieldsToCopy.forEach(f => {
              if (lastEntry[f] !== undefined && lastEntry[f] !== null) {
-                 let valToSet = lastEntry[f];
-                 if (f === 'arrivalDate' && typeof valToSet === 'string') {
-                     valToSet = new Date(valToSet);
-                 }
-                 apiRef.current.setEditCellValue({ id, field: f, value: valToSet });
-                 updateObj[f] = valToSet;
+                 apiRef.current.setEditCellValue({ id, field: f, value: lastEntry[f] });
+                 updateObj[f] = lastEntry[f];
              }
           });
        }

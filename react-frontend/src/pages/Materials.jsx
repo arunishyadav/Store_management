@@ -42,7 +42,10 @@ const Materials = () => {
             let arrivalGroups = {};
             entriesList.forEach(e => {
                 const bill = (e.billNumber || '').trim();
-                const key = bill !== '' ? bill : 'id_' + e.id;
+                const arrDate = e.arrivalDate || 'nodate';
+                const arrTime = e.arrivalTime || 'notime';
+                const brought = e.broughtBy || 'nobroughtby';
+                const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;
                 const arrQty = parseFloat(e.arrivalQuantity || 0);
                 if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
                     arrivalGroups[key] = arrQty;

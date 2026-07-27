@@ -54,7 +54,7 @@ function AutocompleteEditCell(props) {
 
        if (lastEntry) {
           // Auto-fill other fields by setting their edit cell values
-          const fieldsToCopy = ['arrivalQuantity', 'productLength', 'innerDiameter', 'kg'];
+          const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'productLength', 'innerDiameter', 'kg'];
           fieldsToCopy.forEach(f => {
              if (lastEntry[f] !== undefined && lastEntry[f] !== null) {
                  apiRef.current.setEditCellValue({ id, field: f, value: lastEntry[f] });
@@ -333,7 +333,10 @@ export default function StockLedger() {
           for (let i = 0; i < materialRows.length; i++) {
              const r = materialRows[i];
              const bill = (r.billNumber || '').trim();
-             const key = bill !== '' ? bill : 'id_' + r.id;
+             const arrDate = r.arrivalDate || 'nodate';
+             const arrTime = r.arrivalTime || 'notime';
+             const brought = r.broughtBy || 'nobroughtby';
+             const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;
              const arrQty = parseFloat(r.arrivalQuantity || 0);
              if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
                  arrivalGroups[key] = arrQty;
@@ -378,7 +381,10 @@ export default function StockLedger() {
           for (let i = 0; i < materialRows.length; i++) {
              const r = materialRows[i];
              const bill = (r.billNumber || '').trim();
-             const key = bill !== '' ? bill : 'id_' + r.id;
+             const arrDate = r.arrivalDate || 'nodate';
+             const arrTime = r.arrivalTime || 'notime';
+             const brought = r.broughtBy || 'nobroughtby';
+             const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;
              const arrQty = parseFloat(r.arrivalQuantity || 0);
              if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
                  arrivalGroups[key] = arrQty;

@@ -36,8 +36,18 @@ const Materials = () => {
       const materials = matRes.data;
       const entries = stockRes.data;
 
-      const formattedRows = materials.map(mat => {
-        const matEntries = entries.filter(e => e.material?.id === mat.id);
+      const uniqueMaterialsMap = {};
+      materials.forEach(mat => {
+          if (!uniqueMaterialsMap[mat.materialCode]) {
+              uniqueMaterialsMap[mat.materialCode] = { ...mat, ids: [mat.id] };
+          } else {
+              uniqueMaterialsMap[mat.materialCode].ids.push(mat.id);
+          }
+      });
+      const uniqueMaterials = Object.values(uniqueMaterialsMap);
+
+      const formattedRows = uniqueMaterials.map(mat => {
+        const matEntries = entries.filter(e => mat.ids.includes(e.material?.id));
         const calculateGroupedArrival = (entriesList) => {
             let arrivalGroups = {};
             entriesList.forEach(e => {

@@ -253,7 +253,7 @@ const MISReport = () => {
       {loading ? (
         <Box display="flex" justifyContent="center" alignItems="center" flexGrow={1}><CircularProgress /></Box>
       ) : (
-        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', px: { xs: 2, sm: 0 }, pb: 2 }}>
+        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto', px: { xs: 2, sm: 0 }, pb: 2, minHeight: 0 }}>
           {tabValue === 0 && (
              <Grid container spacing={3}>
                 <Grid item xs={12} md={12}>
@@ -309,9 +309,9 @@ const MISReport = () => {
                       </CardContent>
                    </Card>
                 </Grid>
-                <Grid item xs={12} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                   <Paper sx={{ width: '100%', mt: 2, flexGrow: 1, minHeight: 400, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} elevation={2}>
-                      <Box sx={{ flexGrow: 1, width: '100%' }}>
+                <Grid item xs={12} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 400 }}>
+                   <Paper sx={{ width: '100%', mt: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} elevation={2}>
+                      <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
                          <DataGrid
                            rows={reportData}
                            columns={reportColumns}
@@ -332,8 +332,8 @@ const MISReport = () => {
           )}
 
           {tabValue === 1 && (
-             <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} elevation={2}>
-                <Box sx={{ flexGrow: 1, width: '100%' }}>
+             <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 400 }} elevation={2}>
+                <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
                    <DataGrid
                      rows={filteredEntries}
                      columns={entryColumns}

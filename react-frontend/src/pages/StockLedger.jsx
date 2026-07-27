@@ -53,11 +53,15 @@ function AutocompleteEditCell(props) {
 
        if (lastEntry) {
           // Auto-fill other fields by setting their edit cell values
-          const fieldsToCopy = ['productLength', 'innerDiameter', 'kg'];
+          const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'productLength', 'innerDiameter', 'kg'];
           fieldsToCopy.forEach(f => {
              if (lastEntry[f] !== undefined && lastEntry[f] !== null) {
-                 apiRef.current.setEditCellValue({ id, field: f, value: lastEntry[f] });
-                 updateObj[f] = lastEntry[f];
+                 let valToSet = lastEntry[f];
+                 if (f === 'arrivalDate' && typeof valToSet === 'string') {
+                     valToSet = new Date(valToSet);
+                 }
+                 apiRef.current.setEditCellValue({ id, field: f, value: valToSet });
+                 updateObj[f] = valToSet;
              }
           });
        }
@@ -462,7 +466,16 @@ export default function StockLedger() {
   }
 
   const filteredRows = dateFilter 
-    ? rows.filter(r => (r.arrivalDate && r.arrivalDate.startsWith(dateFilter)) || (r.issueDate && r.issueDate.startsWith(dateFilter)))
+    ? rows.filter(r => {
+         const outQty = parseFloat(r.outgoingQuantity || 0);
+         if (outQty > 0 && r.issueDate) {
+             return r.issueDate.startsWith(dateFilter);
+         }
+         if (r.arrivalDate) {
+             return r.arrivalDate.startsWith(dateFilter);
+         }
+         return false;
+    })
     : rows;
 
   return (

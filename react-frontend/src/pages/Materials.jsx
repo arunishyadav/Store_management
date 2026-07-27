@@ -12,7 +12,7 @@ const Materials = () => {
   const locationId = useAuthStore(state => state.selectedLocation?.id);
   const currentUser = useAuthStore(state => state.user);
   const todayStr = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [selectedDate, setSelectedDate] = useState('');
   const [open, setOpen] = useState(false);
   const [newMat, setNewMat] = useState({ 
     name: '', code: '', category: '', 

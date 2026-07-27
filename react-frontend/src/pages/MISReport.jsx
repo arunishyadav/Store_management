@@ -69,7 +69,9 @@ const MISReport = () => {
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
 
-      return materials.map(mat => {
+      const aggregatedData = {};
+
+      materials.forEach(mat => {
           const matEntries = entries.filter(e => e.material?.id === mat.id);
           
           let openingArrivalGroups = {};
@@ -117,17 +119,25 @@ const MISReport = () => {
           const openingStock = openingArr - openingOut;
           const closingStock = openingStock + inwardRange - issuedRange;
 
-          return {
-              id: mat.id,
-              materialCode: mat.materialCode,
-              materialName: mat.name,
-              category: mat.category || 'Unknown',
-              openingStock,
-              inward: inwardRange,
-              issued: issuedRange,
-              closingStock
-          };
+          if (aggregatedData[mat.materialCode]) {
+              aggregatedData[mat.materialCode].openingStock += openingStock;
+              aggregatedData[mat.materialCode].inward += inwardRange;
+              aggregatedData[mat.materialCode].issued += issuedRange;
+              aggregatedData[mat.materialCode].closingStock += closingStock;
+          } else {
+              aggregatedData[mat.materialCode] = {
+                  id: mat.materialCode, // use code as unique id
+                  materialCode: mat.materialCode,
+                  materialName: mat.name,
+                  category: mat.category || 'Unknown',
+                  openingStock,
+                  inward: inwardRange,
+                  issued: issuedRange,
+                  closingStock
+              };
+          }
       });
+      return Object.values(aggregatedData);
   }, [materials, entries, startDate, endDate]);
 
   // Data for Charts
@@ -251,7 +261,7 @@ const MISReport = () => {
                       <CardContent>
                          <Typography variant="h6" gutterBottom color="textSecondary">Stock Movement (Opening vs Closing)</Typography>
                          <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={reportData.slice(0, 10)}>
+                            <BarChart data={reportData}>
                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                <XAxis dataKey="materialName" />
                                <YAxis />

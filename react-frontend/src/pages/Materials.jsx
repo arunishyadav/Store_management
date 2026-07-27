@@ -12,6 +12,7 @@ const Materials = () => {
   const locationId = useAuthStore(state => state.selectedLocation?.id);
   const currentUser = useAuthStore(state => state.user);
   const todayStr = new Date().toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState(todayStr);
   const [open, setOpen] = useState(false);
   const [newMat, setNewMat] = useState({ 
     name: '', code: '', category: '', 
@@ -22,7 +23,7 @@ const Materials = () => {
     if (locationId) {
       fetchData();
     }
-  }, [locationId]);
+  }, [locationId, selectedDate]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -60,11 +61,11 @@ const Materials = () => {
         const nowQuantity = totalArrival - totalOutgoing;
         const availableInStore = nowQuantity > 0 ? 'YES' : 'NO';
         
-        const dateEntries = matEntries;
+        const hasActivity = selectedDate 
+            ? matEntries.some(e => (e.arrivalDate && e.arrivalDate.startsWith(selectedDate)) || (e.issueDate && e.issueDate.startsWith(selectedDate)))
+            : true;
 
-        const dateArrival = calculateGroupedArrival(dateEntries);
-
-        const sortedArrivals = dateEntries
+        const sortedArrivals = matEntries
             .filter(e => e.arrivalDate)
             .sort((a, b) => new Date(b.arrivalDate) - new Date(a.arrivalDate));
             
@@ -79,16 +80,16 @@ const Materials = () => {
           materialCode: mat.materialCode,
           name: mat.name,
           category: mat.category,
-          arrivalQuantity: dateArrival,
+          arrivalQuantity: totalArrival,
           arrivalDate: arrivalDateTime,
           laneWalaName: laneWalaName,
           nowQuantity: nowQuantity,
           availableInStore: availableInStore,
-          hasActivityToday: dateEntries.length > 0
+          hasActivityToday: hasActivity
         };
       });
 
-      const displayRows = formattedRows;
+      const displayRows = selectedDate ? formattedRows.filter(r => r.hasActivityToday) : formattedRows;
       setRows(displayRows);
     } catch (error) {
       console.error("Error fetching materials data:", error);
@@ -262,8 +263,17 @@ const Materials = () => {
     <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 } }}>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, gap: 2 }}>
         <Typography variant="h4" fontWeight="bold" sx={{ px: { xs: 2, sm: 0 }, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>Materials</Typography>
-        <Box display="flex" gap={2} alignItems="center" sx={{ px: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' }, overflowX: 'auto' }}>
-
+         <Box display="flex" gap={2} alignItems="center" sx={{ px: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' }, overflowX: 'auto' }}>
+           <Box display="flex" alignItems="center" gap={1}>
+              <Typography variant="body1" fontWeight="bold" whiteSpace="nowrap">Sheet Date:</Typography>
+              <input 
+                  type="date" 
+                  value={selectedDate} 
+                  onChange={(e) => setSelectedDate(e.target.value)} 
+                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+              />
+              {selectedDate && <Button variant="text" size="small" onClick={() => setSelectedDate('')}>Clear</Button>}
+           </Box>
            {currentUser?.role !== 'USER' && (
              <Button 
                variant="contained" 
@@ -271,7 +281,7 @@ const Materials = () => {
                startIcon={<AddIcon />} 
                sx={{ whiteSpace: 'nowrap' }}
                onClick={() => {
-                 setNewMat(prev => ({ ...prev, arrivalDate: todayStr }));
+                 setNewMat(prev => ({ ...prev, arrivalDate: selectedDate || todayStr }));
                  setOpen(true);
               }}
             >

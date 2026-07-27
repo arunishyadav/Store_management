@@ -77,7 +77,7 @@ const Materials = () => {
 
         const sortedArrivals = matEntries
             .filter(e => e.arrivalDate)
-            .sort((a, b) => new Date(b.arrivalDate) - new Date(a.arrivalDate));
+            .sort((a, b) => new Date(a.arrivalDate) - new Date(b.arrivalDate)); // OLDEST first
             
         const latestEntry = sortedArrivals.length > 0 ? sortedArrivals[0] : null;
         const arrivalDateStr = latestEntry && latestEntry.arrivalDate ? new Date(latestEntry.arrivalDate).toLocaleDateString() : 'N/A';

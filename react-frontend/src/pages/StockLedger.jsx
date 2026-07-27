@@ -25,7 +25,7 @@ const initialRow = {
 };
 
 function AutocompleteEditCell(props) {
-  const { id, value, field, materials } = props;
+  const { id, value, field, materials, allBackendRows } = props;
   const apiRef = useGridApiContext();
   
   const handleChange = (event, newValue) => {
@@ -33,11 +33,10 @@ function AutocompleteEditCell(props) {
     apiRef.current.setEditCellValue({ id, field, value: selectedCode });
     
     if (selectedCode) {
-       // Find the last entry for this materialCode to auto-fill
-       const allRows = Array.from(apiRef.current.getRowModels().values());
+       // Find the last entry for this materialCode to auto-fill using allBackendRows (ignoring date filter)
        let lastEntry = null;
-       allRows.forEach((row) => {
-          if (row.materialCode === selectedCode && row.id !== id && !row.isNew) {
+       allBackendRows.forEach((row) => {
+          if (row.materialCode === selectedCode && row.id !== id) {
              if (!lastEntry || new Date(row.arrivalDate) > new Date(lastEntry.arrivalDate)) {
                 lastEntry = row;
              }
@@ -291,7 +290,7 @@ export default function StockLedger() {
       headerName: 'Search Item (Code/Name)', 
       width: 250, 
       editable: true,
-      renderEditCell: (params) => <AutocompleteEditCell {...params} materials={materials} />,
+      renderEditCell: (params) => <AutocompleteEditCell {...params} materials={materials} allBackendRows={rows} />,
       renderCell: (params) => {
           if (!params.value) return '';
           const mat = materials.find(m => m.materialCode === params.value);

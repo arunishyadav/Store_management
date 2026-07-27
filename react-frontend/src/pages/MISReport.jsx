@@ -196,46 +196,11 @@ const MISReport = () => {
   ];
 
   const entryColumns = [
-    { field: 'billNumber', headerName: 'Bill number', width: 130,
-      valueGetter: (value, row) => {
-          if (value) return value;
-          if (parseFloat(row.outgoingQuantity || 0) > 0 && row.material?.id) {
-              const arrivals = entries.filter(r => r.material?.id === row.material?.id && r.billNumber);
-              if (arrivals.length > 0) {
-                 arrivals.sort((a,b) => new Date(b.arrivalDate || 0) - new Date(a.arrivalDate || 0));
-                 return arrivals[0].billNumber;
-              }
-          }
-          return value;
-      }
-    },
+    { field: 'billNumber', headerName: 'Bill number', width: 130 },
     { field: 'materialCode', headerName: 'Item Code', width: 130 },
     { field: 'materialName', headerName: 'Item Name', flex: 1, minWidth: 150 },
-    { field: 'arrivalQuantity', headerName: 'Arrival Qty', type: 'number', width: 110,
-      valueGetter: (value, row) => {
-          if (parseFloat(value || 0) > 0) return parseFloat(value);
-          if (!row.material?.id || parseFloat(row.outgoingQuantity || 0) === 0) return value;
-          const arrivals = entries.filter(r => r.material?.id === row.material?.id && parseFloat(r.arrivalQuantity || 0) > 0);
-          if (arrivals.length > 0) {
-             arrivals.sort((a,b) => new Date(b.arrivalDate || 0) - new Date(a.arrivalDate || 0));
-             return parseFloat(arrivals[0].arrivalQuantity);
-          }
-          return value || 0;
-      }
-    },
-    { field: 'arrivalDate', headerName: 'Store Arrival Date', width: 150,
-      valueGetter: (value, row) => {
-          if (value) return value;
-          if (parseFloat(row.outgoingQuantity || 0) > 0 && row.material?.id) {
-              const arrivals = entries.filter(r => r.material?.id === row.material?.id && r.arrivalDate);
-              if (arrivals.length > 0) {
-                 arrivals.sort((a,b) => new Date(b.arrivalDate) - new Date(a.arrivalDate));
-                 return arrivals[0].arrivalDate;
-              }
-          }
-          return null;
-      }
-    },
+    { field: 'arrivalQuantity', headerName: 'Arrival Qty', type: 'number', width: 110 },
+    { field: 'arrivalDate', headerName: 'Store Arrival Date', width: 150 },
     { field: 'outgoingQuantity', headerName: 'Outgoing Qty', type: 'number', width: 120 },
     { field: 'issueDate', headerName: 'Issue Date', width: 150 },
     { field: 'issuedBy', headerName: 'Issued By', width: 130 },

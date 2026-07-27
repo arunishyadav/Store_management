@@ -12,7 +12,6 @@ const Materials = () => {
   const locationId = useAuthStore(state => state.selectedLocation?.id);
   const currentUser = useAuthStore(state => state.user);
   const todayStr = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState('');
   const [open, setOpen] = useState(false);
   const [newMat, setNewMat] = useState({ 
     name: '', code: '', category: '', 
@@ -61,10 +60,7 @@ const Materials = () => {
         const nowQuantity = totalArrival - totalOutgoing;
         const availableInStore = nowQuantity > 0 ? 'YES' : 'NO';
         
-        // Filter entries for the selected date to see if there is activity today
-        const dateEntries = selectedDate 
-            ? matEntries.filter(e => (e.arrivalDate && e.arrivalDate.startsWith(selectedDate)) || (e.issueDate && e.issueDate.startsWith(selectedDate)))
-            : matEntries;
+        const dateEntries = matEntries;
 
         const dateArrival = calculateGroupedArrival(dateEntries);
 
@@ -92,7 +88,7 @@ const Materials = () => {
         };
       });
 
-      const displayRows = selectedDate ? formattedRows.filter(r => r.hasActivityToday) : formattedRows;
+      const displayRows = formattedRows;
       setRows(displayRows);
     } catch (error) {
       console.error("Error fetching materials data:", error);
@@ -267,16 +263,7 @@ const Materials = () => {
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, gap: 2 }}>
         <Typography variant="h4" fontWeight="bold" sx={{ px: { xs: 2, sm: 0 }, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>Materials</Typography>
         <Box display="flex" gap={2} alignItems="center" sx={{ px: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' }, overflowX: 'auto' }}>
-           <Box display="flex" alignItems="center" gap={1}>
-              <Typography variant="body1" fontWeight="bold" whiteSpace="nowrap">Sheet Date:</Typography>
-              <input 
-                  type="date" 
-                  value={selectedDate} 
-                  onChange={(e) => setSelectedDate(e.target.value)} 
-                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-              />
-              {selectedDate && <Button variant="text" size="small" onClick={() => setSelectedDate('')}>Clear</Button>}
-           </Box>
+
            {currentUser?.role !== 'USER' && (
              <Button 
                variant="contained" 
@@ -284,7 +271,7 @@ const Materials = () => {
                startIcon={<AddIcon />} 
                sx={{ whiteSpace: 'nowrap' }}
                onClick={() => {
-                 setNewMat(prev => ({ ...prev, arrivalDate: selectedDate || todayStr }));
+                 setNewMat(prev => ({ ...prev, arrivalDate: todayStr }));
                  setOpen(true);
               }}
             >

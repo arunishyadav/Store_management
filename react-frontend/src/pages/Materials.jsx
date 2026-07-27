@@ -72,7 +72,7 @@ const Materials = () => {
         const availableInStore = nowQuantity > 0 ? 'YES' : 'NO';
         
         const hasActivity = selectedDate 
-            ? matEntries.some(e => (e.arrivalDate && e.arrivalDate.startsWith(selectedDate)) || (e.issueDate && e.issueDate.startsWith(selectedDate)))
+            ? matEntries.some(e => e.arrivalDate && e.arrivalDate.startsWith(selectedDate))
             : true;
 
         const sortedArrivals = matEntries

@@ -261,7 +261,7 @@ const MISReport = () => {
                       <CardContent>
                          <Typography variant="h6" gutterBottom color="textSecondary">Stock Movement (Opening vs Closing)</Typography>
                          <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={reportData}>
+                            <BarChart data={reportData.filter(r => r.openingStock > 0 || r.closingStock > 0 || r.inward > 0 || r.issued > 0)}>
                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                <XAxis dataKey="materialName" />
                                <YAxis />

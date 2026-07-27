@@ -282,7 +282,15 @@ const Materials = () => {
                   onChange={(e) => setSelectedDate(e.target.value)} 
                   style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
               />
-              {selectedDate && <Button variant="text" size="small" onClick={() => setSelectedDate('')}>Clear</Button>}
+              <Button 
+                variant={selectedDate ? "contained" : "outlined"} 
+                color={selectedDate ? "secondary" : "inherit"}
+                size="small" 
+                onClick={() => setSelectedDate('')}
+                sx={{ whiteSpace: 'nowrap' }}
+              >
+                All Data
+              </Button>
            </Box>
            {currentUser?.role !== 'USER' && (
              <Button 

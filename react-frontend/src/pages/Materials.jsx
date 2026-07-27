@@ -22,7 +22,7 @@ const Materials = () => {
     if (locationId) {
       fetchData();
     }
-  }, [locationId, selectedDate]);
+  }, [locationId]);
 
   const fetchData = async () => {
     setLoading(true);

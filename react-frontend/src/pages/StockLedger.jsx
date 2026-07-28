@@ -258,12 +258,7 @@ export default function StockLedger() {
       material: finalMaterialId ? { id: finalMaterialId } : null
     };
 
-    if (parseFloat(payload.outgoingQuantity || 0) > 0) {
-        payload.arrivalQuantity = 0;
-        payload.arrivalDate = null;
-        payload.arrivalTime = null;
-        payload.broughtBy = '';
-    }
+
 
     if (!payload.material) {
         throw new Error("Please select a valid Item Code");

@@ -32,6 +32,7 @@ function AutocompleteEditCell(props) {
     const selectedCode = newValue ? newValue.value : '';
     apiRef.current.setEditCellValue({ id, field, value: selectedCode });
     
+    if (selectedCode) {
        // Find the most recent entry for this material code from ALL entries, including hidden ones
        const allBackendRows = globalAllStockEntries;
        

@@ -53,10 +53,19 @@ function AutocompleteEditCell(props) {
 
        if (lastEntry) {
           // Auto-fill other fields by setting their edit cell values
-          const fieldsToCopy = ['productLength', 'innerDiameter', 'kg'];
+          const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'productLength', 'innerDiameter', 'kg'];
           fieldsToCopy.forEach(f => {
              if (lastEntry[f] !== undefined && lastEntry[f] !== null) {
                  let valToSet = lastEntry[f];
+                 if (f === 'arrivalDate' && typeof valToSet === 'string') {
+                     // preserve local timezone
+                     const parts = valToSet.split('-');
+                     if (parts.length === 3) {
+                         valToSet = new Date(parts[0], parts[1] - 1, parts[2]);
+                     } else {
+                         valToSet = new Date(valToSet);
+                     }
+                 }
                  apiRef.current.setEditCellValue({ id, field: f, value: valToSet });
                  updateObj[f] = valToSet;
              }
@@ -308,64 +317,12 @@ export default function StockLedger() {
       editable: true,
       renderEditCell: (params) => <NameEditCell {...params} />
     },
-    { 
-      field: 'arrivalQuantity', 
-      headerName: 'Arrival Qty', 
-      type: 'number', 
-      width: 120, 
-      editable: true,
-      valueGetter: (value, row) => {
-          if (value > 0) return value;
-          if (parseFloat(row.outgoingQuantity || 0) > 0 && row.materialCode) {
-              const arrivalRow = rows.find(r => r.materialCode === row.materialCode && parseFloat(r.arrivalQuantity || 0) > 0);
-              return arrivalRow ? arrivalRow.arrivalQuantity : 0;
-          }
-          return value;
-      }
+    { field: 'arrivalQuantity', headerName: 'Arrival Qty', type: 'number', width: 120, editable: true },
+    { field: 'arrivalDate', headerName: 'Store Arrival Date', type: 'date', width: 130, editable: true,
+      valueGetter: (value) => value ? new Date(value) : null
     },
-    { 
-      field: 'arrivalDate', 
-      headerName: 'Store Arrival Date', 
-      type: 'date', 
-      width: 130, 
-      editable: true,
-      valueGetter: (value, row) => {
-          if (value) return new Date(value);
-          if (parseFloat(row.outgoingQuantity || 0) > 0 && row.materialCode) {
-              const arrivalRow = rows.find(r => r.materialCode === row.materialCode && r.arrivalDate);
-              return arrivalRow ? new Date(arrivalRow.arrivalDate) : null;
-          }
-          return null;
-      }
-    },
-    { 
-      field: 'arrivalTime', 
-      headerName: 'Arrival Time (HH:MM)', 
-      width: 130, 
-      editable: true,
-      valueGetter: (value, row) => {
-          if (value) return value;
-          if (parseFloat(row.outgoingQuantity || 0) > 0 && row.materialCode) {
-              const arrivalRow = rows.find(r => r.materialCode === row.materialCode && r.arrivalTime);
-              return arrivalRow ? arrivalRow.arrivalTime : '';
-          }
-          return value;
-      }
-    },
-    { 
-      field: 'broughtBy', 
-      headerName: 'Lane Wala Name', 
-      width: 150, 
-      editable: true,
-      valueGetter: (value, row) => {
-          if (value) return value;
-          if (parseFloat(row.outgoingQuantity || 0) > 0 && row.materialCode) {
-              const arrivalRow = rows.find(r => r.materialCode === row.materialCode && r.broughtBy);
-              return arrivalRow ? arrivalRow.broughtBy : '';
-          }
-          return value;
-      }
-    },
+    { field: 'arrivalTime', headerName: 'Arrival Time (HH:MM)', width: 130, editable: true },
+    { field: 'broughtBy', headerName: 'Lane Wala Name', width: 150, editable: true },
     { 
       field: 'availableInStore', 
       headerName: 'Avlabel In Store', 

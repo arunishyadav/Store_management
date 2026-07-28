@@ -25,15 +25,16 @@ const initialRow = {
 };
 
 function AutocompleteEditCell(props) {
-  const { id, value, field, materials, allBackendRows } = props;
+  const { id, value, field, materials } = props;
   const apiRef = useGridApiContext();
   
   const handleChange = (event, newValue) => {
     const selectedCode = newValue ? newValue.value : '';
     apiRef.current.setEditCellValue({ id, field, value: selectedCode });
     
-    if (selectedCode) {
-       // Find the last entry for this materialCode to auto-fill using allBackendRows (ignoring date filter)
+       // Find the most recent entry for this material code from ALL entries, including hidden ones
+       const allBackendRows = globalAllStockEntries;
+       
        let lastEntry = null;
        allBackendRows.forEach((row) => {
           if (row.materialCode === selectedCode && row.id !== id) {
@@ -126,6 +127,8 @@ function NameEditCell(props) {
   );
 }
 
+let globalAllStockEntries = [];
+
 export default function StockLedger() {
   const [rows, setRows] = useState([]);
   const [rowModesModel, setRowModesModel] = useState({});
@@ -149,13 +152,19 @@ export default function StockLedger() {
         api.get(`/api/v1/stock-entries?locationId=${locationId}`),
         api.get(`/api/v1/materials?locationId=${locationId}`)
       ]);
-      // Format rows for DataGrid
-      const formattedRows = stockRes.data.map(r => ({
+      
+      const mapped = stockRes.data.map(r => ({
         ...r,
         materialId: r.material?.id,
         materialName: r.material?.name,
         materialCode: r.material?.materialCode
       }));
+      
+      globalAllStockEntries = mapped;
+
+      // Format rows for DataGrid: Hide pure initial stock entries so they don't clutter the ledger automatically
+      const formattedRows = mapped.filter(r => r.issuedBy !== 'INITIAL_STOCK');
+      
       setRows(formattedRows);
       setMaterials(matRes.data);
     } catch (error) {

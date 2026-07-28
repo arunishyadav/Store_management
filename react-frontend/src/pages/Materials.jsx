@@ -120,9 +120,32 @@ const Materials = () => {
               minQuantity: 1,
               location: { id: locationId }
           });
+          const createdMaterial = matRes.data;
+
+          // 2. Always create an initial Stock Entry so it appears in the Entry Book
+          const formatTime = (timeVal) => {
+             if (!timeVal) return null;
+             let t = timeVal.trim();
+             if (t === "") return null;
+             const parts = t.split(':');
+             if (parts.length === 1) return `${parts[0].padStart(2, '0')}:00:00`;
+             if (parts.length === 2) return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:00`;
+             return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:${parts[2].padStart(2, '0')}`;
+          };
           
-          // Do NOT create an initial Stock Entry automatically.
-          // User will manually create the arrival entry in the Entry Book.
+          const payload = {
+            material: { id: createdMaterial.id },
+            location: { id: locationId },
+            arrivalQuantity: parseFloat(newMat.arrivalQuantity || 0),
+            arrivalDate: newMat.arrivalDate || null,
+            arrivalTime: formatTime(newMat.arrivalTime),
+            broughtBy: newMat.broughtBy || '',
+            outgoingQuantity: 0,
+            issueDate: null,
+            issuedBy: 'INITIAL_STOCK', // Secret flag to hide from Entry Book
+            storeInchargeName: currentUser?.name || ''
+          };
+          await api.post('/api/v1/stock-entries', payload);
 
           setNewMat({ name: '', code: '', category: 'Hardware', arrivalQuantity: '', arrivalDate: todayStr, arrivalTime: '', broughtBy: '' });
           fetchData();
@@ -323,16 +346,22 @@ const Materials = () => {
       </Paper>
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-          <DialogTitle sx={{ fontWeight: 'bold' }}>Add New Material</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 'bold' }}>Add New Material & Entry</DialogTitle>
           <DialogContent dividers>
               <Typography variant="subtitle2" color="primary" gutterBottom>Master Details (Required)</Typography>
               <TextField autoFocus margin="dense" label="Item Code (e.g. MAT-123)" fullWidth variant="outlined" value={newMat.code} onChange={e => setNewMat({...newMat, code: e.target.value})} />
               <TextField margin="dense" label="Item Name" fullWidth variant="outlined" value={newMat.name} onChange={e => setNewMat({...newMat, name: e.target.value})} />
               <TextField margin="dense" label="Category" fullWidth variant="outlined" value={newMat.category} onChange={e => setNewMat({...newMat, category: e.target.value})} />
+              
+              <Typography variant="subtitle2" color="primary" sx={{ mt: 2 }} gutterBottom>Initial Stock Entry (Optional)</Typography>
+              <TextField margin="dense" label="Arrival Quantity" type="number" fullWidth variant="outlined" value={newMat.arrivalQuantity} onChange={e => setNewMat({...newMat, arrivalQuantity: e.target.value})} />
+              <TextField margin="dense" label="Arrival Date" type="date" fullWidth variant="outlined" InputLabelProps={{ shrink: true }} value={newMat.arrivalDate} onChange={e => setNewMat({...newMat, arrivalDate: e.target.value})} />
+              <TextField margin="dense" label="Arrival Time (HH:MM)" type="time" fullWidth variant="outlined" InputLabelProps={{ shrink: true }} value={newMat.arrivalTime} onChange={e => setNewMat({...newMat, arrivalTime: e.target.value})} />
+              <TextField margin="dense" label="Lane Wala Ka Name" fullWidth variant="outlined" value={newMat.broughtBy} onChange={e => setNewMat({...newMat, broughtBy: e.target.value})} />
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
               <Button onClick={() => setOpen(false)} color="inherit">Cancel</Button>
-              <Button onClick={handleAddSubmit} variant="contained" disabled={!newMat.code || !newMat.name}>Add Material</Button>
+              <Button onClick={handleAddSubmit} variant="contained" disabled={!newMat.code || !newMat.name}>Add Material & Entry</Button>
           </DialogActions>
       </Dialog>
     </Box>

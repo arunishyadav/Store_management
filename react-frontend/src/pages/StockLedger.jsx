@@ -151,17 +151,17 @@ const calculateStockState = (row, allBackendRows) => {
         if (dateA < dateB) return -1;
         if (dateA > dateB) return 1;
         
-        // If dates are equal, put pure arrivals first
+        // 1. Ensure NEW, unfinished rows ALWAYS come LAST! (Check this BEFORE outgoingQuantity)
+        const isNewA = !!a.isNew;
+        const isNewB = !!b.isNew;
+        if (!isNewA && isNewB) return -1;
+        if (isNewA && !isNewB) return 1;
+        
+        // 2. If both are old (or both are new), put pure arrivals first
         const outA = parseFloat(a.outgoingQuantity || 0);
         const outB = parseFloat(b.outgoingQuantity || 0);
         if (outA === 0 && outB > 0) return -1;
         if (outA > 0 && outB === 0) return 1;
-        
-        // If both are issues on same date, ensure NEW rows come last
-        const isNewA = a.isNew || String(a.id).length < 20;
-        const isNewB = b.isNew || String(b.id).length < 20;
-        if (!isNewA && isNewB) return -1;
-        if (isNewA && !isNewB) return 1;
 
         return 0;
     });

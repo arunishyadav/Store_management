@@ -130,6 +130,71 @@ function NameEditCell(props) {
 
 let globalAllStockEntries = [];
 
+const calculateStockState = (row, allBackendRows) => {
+    if (!row.materialCode) return { runningBalance: 0, available: 'NO' };
+    
+    // Combine backend rows with the current row (if it's being edited, it overrides the backend row)
+    const allRows = [...allBackendRows];
+    const existingIndex = allRows.findIndex(r => r.id === row.id);
+    if (existingIndex !== -1) {
+        allRows[existingIndex] = row;
+    } else {
+        allRows.push(row);
+    }
+    
+    const materialRows = allRows.filter(r => r.materialCode === row.materialCode);
+    
+    // Sort rows carefully
+    materialRows.sort((a, b) => {
+        const dateA = a.issueDate ? new Date(a.issueDate) : (a.arrivalDate ? new Date(a.arrivalDate) : new Date(0));
+        const dateB = b.issueDate ? new Date(b.issueDate) : (b.arrivalDate ? new Date(b.arrivalDate) : new Date(0));
+        if (dateA < dateB) return -1;
+        if (dateA > dateB) return 1;
+        
+        // If dates are equal, put pure arrivals first
+        const outA = parseFloat(a.outgoingQuantity || 0);
+        const outB = parseFloat(b.outgoingQuantity || 0);
+        if (outA === 0 && outB > 0) return -1;
+        if (outA > 0 && outB === 0) return 1;
+        
+        // If both are issues on same date, ensure NEW rows come last
+        const isNewA = a.isNew || String(a.id).length < 20;
+        const isNewB = b.isNew || String(b.id).length < 20;
+        if (!isNewA && isNewB) return -1;
+        if (isNewA && !isNewB) return 1;
+
+        return 0;
+    });
+
+    let arrivalGroups = {};
+    let totalOut = 0;
+    let runningBalance = 0;
+    
+    for (let i = 0; i < materialRows.length; i++) {
+        const r = materialRows[i];
+        const bill = (r.billNumber || '').trim();
+        const arrDate = r.arrivalDate || 'nodate';
+        const arrTime = r.arrivalTime || 'notime';
+        const brought = r.broughtBy || 'nobroughtby';
+        const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;
+        const arrQty = parseFloat(r.arrivalQuantity || 0);
+        
+        if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
+            arrivalGroups[key] = arrQty;
+        }
+        
+        let currentTotalArr = 0;
+        Object.values(arrivalGroups).forEach(val => currentTotalArr += val);
+        totalOut += parseFloat(r.outgoingQuantity || 0);
+        runningBalance = currentTotalArr - totalOut;
+        
+        if (r.id === row.id) {
+            return { runningBalance, available: runningBalance > 0 ? 'YES' : 'NO' };
+        }
+    }
+    return { runningBalance: 0, available: 'NO' };
+};
+
 export default function StockLedger() {
   const [rows, setRows] = useState([]);
   const [rowModesModel, setRowModesModel] = useState({});
@@ -337,40 +402,7 @@ export default function StockLedger() {
         <Chip label={params.value} color={params.value === 'YES' ? 'success' : 'error'} variant="outlined" size="small" />
       ),
       valueGetter: (value, row) => {
-          if (!row.materialCode) return 'NO';
-          const allRows = rows.map(r => r.id === row.id ? row : r);
-          if (!allRows.find(r => r.id === row.id)) allRows.push(row);
-          const materialRows = allRows.filter(r => r.materialCode === row.materialCode);
-          materialRows.sort((a, b) => {
-              const dateA = a.issueDate ? new Date(a.issueDate) : (a.arrivalDate ? new Date(a.arrivalDate) : new Date(0));
-              const dateB = b.issueDate ? new Date(b.issueDate) : (b.arrivalDate ? new Date(b.arrivalDate) : new Date(0));
-              if (dateA < dateB) return -1;
-              if (dateA > dateB) return 1;
-              return 0;
-          });
-          let arrivalGroups = {};
-          let totalOut = 0;
-          let runningBalance = 0;
-          for (let i = 0; i < materialRows.length; i++) {
-             const r = materialRows[i];
-             const bill = (r.billNumber || '').trim();
-             const arrDate = r.arrivalDate || 'nodate';
-             const arrTime = r.arrivalTime || 'notime';
-             const brought = r.broughtBy || 'nobroughtby';
-             const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;
-             const arrQty = parseFloat(r.arrivalQuantity || 0);
-             if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
-                 arrivalGroups[key] = arrQty;
-             }
-             let currentTotalArr = 0;
-             Object.values(arrivalGroups).forEach(val => currentTotalArr += val);
-             totalOut += parseFloat(r.outgoingQuantity || 0);
-             runningBalance = currentTotalArr - totalOut;
-             if (r.id === row.id) {
-                 return runningBalance > 0 ? 'YES' : 'NO';
-             }
-          }
-          return 'NO';
+          return calculateStockState(row, globalAllStockEntries).available;
       }
     },
     { field: 'outgoingQuantity', headerName: 'Outgoing Quantity', type: 'number', width: 130, editable: true },
@@ -385,40 +417,7 @@ export default function StockLedger() {
       type: 'number', 
       width: 110,
       valueGetter: (value, row) => {
-          if (!row.materialCode) return 0;
-          const allRows = rows.map(r => r.id === row.id ? row : r);
-          if (!allRows.find(r => r.id === row.id)) allRows.push(row);
-          const materialRows = allRows.filter(r => r.materialCode === row.materialCode);
-          materialRows.sort((a, b) => {
-              const dateA = a.issueDate ? new Date(a.issueDate) : (a.arrivalDate ? new Date(a.arrivalDate) : new Date(0));
-              const dateB = b.issueDate ? new Date(b.issueDate) : (b.arrivalDate ? new Date(b.arrivalDate) : new Date(0));
-              if (dateA < dateB) return -1;
-              if (dateA > dateB) return 1;
-              return 0;
-          });
-          let arrivalGroups = {};
-          let totalOut = 0;
-          let runningBalance = 0;
-          for (let i = 0; i < materialRows.length; i++) {
-             const r = materialRows[i];
-             const bill = (r.billNumber || '').trim();
-             const arrDate = r.arrivalDate || 'nodate';
-             const arrTime = r.arrivalTime || 'notime';
-             const brought = r.broughtBy || 'nobroughtby';
-             const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;
-             const arrQty = parseFloat(r.arrivalQuantity || 0);
-             if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
-                 arrivalGroups[key] = arrQty;
-             }
-             let currentTotalArr = 0;
-             Object.values(arrivalGroups).forEach(val => currentTotalArr += val);
-             totalOut += parseFloat(r.outgoingQuantity || 0);
-             runningBalance = currentTotalArr - totalOut;
-             if (r.id === row.id) {
-                 return runningBalance;
-             }
-          }
-          return 0;
+          return calculateStockState(row, globalAllStockEntries).runningBalance;
       }
     },
     { field: 'productLength', headerName: 'Product Length', width: 130, editable: true },

@@ -36,8 +36,18 @@ const Materials = () => {
       const materialsData = matRes.data;
       const entries = stockRes.data;
 
-      const formattedRows = materialsData.map(mat => {
-        const matEntries = entries.filter(e => mat.id === e.material?.id);
+      const uniqueMaterialsMap = {};
+      materialsData.forEach(mat => {
+          if (!uniqueMaterialsMap[mat.materialCode]) {
+              uniqueMaterialsMap[mat.materialCode] = { ...mat, ids: [mat.id] };
+          } else {
+              uniqueMaterialsMap[mat.materialCode].ids.push(mat.id);
+          }
+      });
+      const uniqueMaterials = Object.values(uniqueMaterialsMap);
+
+      const formattedRows = uniqueMaterials.map(mat => {
+        const matEntries = entries.filter(e => mat.ids.includes(e.material?.id));
         const calculateGroupedArrival = (entriesList) => {
             let arrivalGroups = {};
             entriesList.forEach(e => {
@@ -57,7 +67,7 @@ const Materials = () => {
         };
 
         const totalArrival = calculateGroupedArrival(matEntries);
-        const totalOutgoing = matEntries.reduce((sum, e) => sum + (e.outgoingQuantity || 0), 0);
+        const totalOutgoing = matEntries.reduce((sum, e) => sum + parseFloat(e.outgoingQuantity || 0), 0);
         const nowQuantity = totalArrival - totalOutgoing;
         const availableInStore = nowQuantity > 0 ? 'YES' : 'NO';
         
@@ -77,6 +87,7 @@ const Materials = () => {
 
         return {
           id: mat.id,
+          ids: mat.ids,
           materialCode: mat.materialCode,
           name: mat.name,
           category: mat.category,
@@ -165,7 +176,12 @@ const Materials = () => {
   const handleDeleteClick = (id) => async () => {
     if (window.confirm("Are you sure you want to delete this material?")) {
         try {
-          await api.delete(`/api/v1/materials/${id}`);
+          const rowToDelete = rows.find(r => r.id === id);
+          if (rowToDelete && rowToDelete.ids) {
+              await Promise.all(rowToDelete.ids.map(duplicateId => api.delete(`/api/v1/materials/${duplicateId}`)));
+          } else {
+              await api.delete(`/api/v1/materials/${id}`);
+          }
           fetchData();
         } catch (error) {
           console.error("Delete failed", error);
@@ -187,7 +203,6 @@ const Materials = () => {
           throw new Error("Item Code and Name cannot be empty.");
       }
       
-      // Send PUT request to update master material details
       const payload = {
           materialCode: newRow.materialCode,
           name: newRow.name,
@@ -197,7 +212,11 @@ const Materials = () => {
           location: { id: locationId },
           active: true
       };
-      await api.put(`/api/v1/materials/${newRow.id}`, payload);
+      
+      // Update ALL duplicates
+      const idsToUpdate = newRow.ids || [newRow.id];
+      await Promise.all(idsToUpdate.map(dupId => api.put(`/api/v1/materials/${dupId}`, payload)));
+      
       setRows((oldRows) => oldRows.map((row) => (row.id === newRow.id ? newRow : row)));
       return newRow;
     } catch (error) {

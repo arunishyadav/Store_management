@@ -320,11 +320,11 @@ const Materials = () => {
         </Box>
       </Box>
 
-      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: 3, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: 3, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
         {loading ? (
            <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (
-          <Box sx={{ flexGrow: 1, width: '100%' }}>
+          <Box sx={{ flexGrow: 1, width: '100%', height: '100%', minHeight: 0 }}>
             <DataGrid
               rows={rows}
               columns={columns}

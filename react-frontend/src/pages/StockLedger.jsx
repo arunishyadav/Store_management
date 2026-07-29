@@ -531,11 +531,11 @@ export default function StockLedger() {
       <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mt: { xs: 1, sm: 0 }, px: { xs: 2, sm: 0 }, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
         Entry Book
       </Typography>
-      <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (
-          <Box sx={{ flexGrow: 1, width: '100%' }}>
+          <Box sx={{ flexGrow: 1, width: '100%', height: '100%', minHeight: 0 }}>
             <DataGrid
               rows={filteredRows}
               columns={columns}

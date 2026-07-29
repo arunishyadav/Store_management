@@ -161,16 +161,16 @@ const calculateStockState = (row, allBackendRows) => {
 
     // Sort rows carefully
     materialRows.sort((a, b) => {
-        const dateStrA = getNormalizedDate(a.issueDate || a.arrivalDate);
-        const dateStrB = getNormalizedDate(b.issueDate || b.arrivalDate);
-        if (dateStrA < dateStrB) return -1;
-        if (dateStrA > dateStrB) return 1;
-        
-        // 1. Ensure NEW, unfinished rows ALWAYS come LAST! (Check this BEFORE outgoingQuantity)
+        // 1. Ensure NEW, unfinished rows ALWAYS come LAST! (Check this BEFORE dates and everything else)
         const isNewA = !!a.isNew;
         const isNewB = !!b.isNew;
         if (!isNewA && isNewB) return -1;
         if (isNewA && !isNewB) return 1;
+        
+        const dateStrA = getNormalizedDate(a.issueDate || a.arrivalDate);
+        const dateStrB = getNormalizedDate(b.issueDate || b.arrivalDate);
+        if (dateStrA < dateStrB) return -1;
+        if (dateStrA > dateStrB) return 1;
         
         // 2. If both are old (or both are new), put pure arrivals first
         const outA = parseFloat(a.outgoingQuantity || 0);
@@ -483,7 +483,7 @@ export default function StockLedger() {
     const handleClick = () => {
       const id = uuidv4();
       const newArrivalDate = dateFilter || todayStr;
-      setRows((oldRows) => [{ ...initialRow, id, arrivalDate: newArrivalDate }, ...oldRows]);
+      setRows((oldRows) => [{ ...initialRow, id, isNew: true, arrivalDate: newArrivalDate }, ...oldRows]);
       setRowModesModel((oldModel) => ({
         ...oldModel,
         [id]: { mode: GridRowModes.Edit, fieldToFocus: 'billNumber' },

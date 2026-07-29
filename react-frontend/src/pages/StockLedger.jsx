@@ -151,16 +151,16 @@ const calculateStockState = (row, allBackendRows) => {
     
     const materialRows = allRows.filter(r => r.materialCode === row.materialCode);
     
+    const getNormalizedDate = (d) => {
+        if (!d) return 'nodate';
+        if (d instanceof Date) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        return String(d).substring(0, 10);
+    };
+
     // Sort rows carefully
     materialRows.sort((a, b) => {
-        const getNormalizedDate = (d) => {
-            if (!d) return '1970-01-01';
-            if (d instanceof Date) {
-                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            }
-            return String(d).substring(0, 10);
-        };
-        
         const dateStrA = getNormalizedDate(a.issueDate || a.arrivalDate);
         const dateStrB = getNormalizedDate(b.issueDate || b.arrivalDate);
         if (dateStrA < dateStrB) return -1;
@@ -188,7 +188,7 @@ const calculateStockState = (row, allBackendRows) => {
     for (let i = 0; i < materialRows.length; i++) {
         const r = materialRows[i];
         const bill = (r.billNumber || '').trim();
-        const arrDate = r.arrivalDate || 'nodate';
+        const arrDate = getNormalizedDate(r.arrivalDate);
         const arrTime = r.arrivalTime || 'notime';
         const brought = r.broughtBy || 'nobroughtby';
         const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;

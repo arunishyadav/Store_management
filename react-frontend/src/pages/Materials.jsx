@@ -33,21 +33,11 @@ const Materials = () => {
         api.get(`/api/v1/stock-entries?locationId=${locationId}`)
       ]);
       
-      const materials = matRes.data;
+      const materialsData = matRes.data;
       const entries = stockRes.data;
 
-      const uniqueMaterialsMap = {};
-      materials.forEach(mat => {
-          if (!uniqueMaterialsMap[mat.materialCode]) {
-              uniqueMaterialsMap[mat.materialCode] = { ...mat, ids: [mat.id] };
-          } else {
-              uniqueMaterialsMap[mat.materialCode].ids.push(mat.id);
-          }
-      });
-      const uniqueMaterials = Object.values(uniqueMaterialsMap);
-
-      const formattedRows = uniqueMaterials.map(mat => {
-        const matEntries = entries.filter(e => mat.ids.includes(e.material?.id));
+      const formattedRows = materialsData.map(mat => {
+        const matEntries = entries.filter(e => mat.id === e.material?.id);
         const calculateGroupedArrival = (entriesList) => {
             let arrivalGroups = {};
             entriesList.forEach(e => {
@@ -208,7 +198,7 @@ const Materials = () => {
           active: true
       };
       await api.put(`/api/v1/materials/${newRow.id}`, payload);
-      // Update local state smoothly without full reload if we want, but returning newRow does that
+      setRows((oldRows) => oldRows.map((row) => (row.id === newRow.id ? newRow : row)));
       return newRow;
     } catch (error) {
       console.error("Save failed", error);

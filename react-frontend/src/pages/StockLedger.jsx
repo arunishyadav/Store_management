@@ -75,6 +75,13 @@ function AutocompleteEditCell(props) {
        }
        // IMMEDIATELY update the row data so Name, Total Avl Q, and YES/NO calculate instantly!
        apiRef.current.updateRows([updateObj]);
+
+       // Calculate current stock using the state BEFORE this new row is fully processed (i.e., we just want to know if balance is <= 0).
+       const dummyRow = { id, materialCode: selectedCode, isNew: true, outgoingQuantity: 0, arrivalDate: updateObj.arrivalDate || '' };
+       const stockState = calculateStockState(dummyRow, globalAllStockEntries);
+       if (stockState.runningBalance <= 0) {
+           alert(`Out of Stock! Material '${selectedCode}' is currently not available in the store (Balance: ${stockState.runningBalance}).`);
+       }
     }
   };
 
@@ -146,10 +153,18 @@ const calculateStockState = (row, allBackendRows) => {
     
     // Sort rows carefully
     materialRows.sort((a, b) => {
-        const dateA = a.issueDate ? new Date(a.issueDate) : (a.arrivalDate ? new Date(a.arrivalDate) : new Date(0));
-        const dateB = b.issueDate ? new Date(b.issueDate) : (b.arrivalDate ? new Date(b.arrivalDate) : new Date(0));
-        if (dateA < dateB) return -1;
-        if (dateA > dateB) return 1;
+        const getNormalizedDate = (d) => {
+            if (!d) return '1970-01-01';
+            if (d instanceof Date) {
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            }
+            return String(d).substring(0, 10);
+        };
+        
+        const dateStrA = getNormalizedDate(a.issueDate || a.arrivalDate);
+        const dateStrB = getNormalizedDate(b.issueDate || b.arrivalDate);
+        if (dateStrA < dateStrB) return -1;
+        if (dateStrA > dateStrB) return 1;
         
         // 1. Ensure NEW, unfinished rows ALWAYS come LAST! (Check this BEFORE outgoingQuantity)
         const isNewA = !!a.isNew;
@@ -280,6 +295,19 @@ export default function StockLedger() {
     const arr = parseFloat(newRow.arrivalQuantity || 0);
     const out = parseFloat(newRow.outgoingQuantity || 0);
     updatedRow.totalAvailableQty = arr - out;
+
+    // Check if we are issuing more than available
+    if (!updatedRow.isNew && out > 0) {
+        const stockState = calculateStockState({ ...updatedRow, outgoingQuantity: 0, isNew: true }, globalAllStockEntries);
+        if (out > stockState.runningBalance && stockState.runningBalance >= 0) {
+            // Note: We allow edit if they are fixing a mistake, but we warn them.
+            // If they are creating a new issue, we throw an error!
+            const isNewToBackend = !globalAllStockEntries.some(r => r.id === newRow.id);
+            if (isNewToBackend) {
+                throw new Error(`Cannot issue ${out}. Only ${stockState.runningBalance} available in store.`);
+            }
+        }
+    }
 
     // Handle material manually
     let finalMaterialId = null;

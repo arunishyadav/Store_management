@@ -548,10 +548,10 @@ export default function StockLedger() {
               onProcessRowUpdateError={(error) => alert(error.message || "Failed to save row.")}
               initialState={{
                 pagination: {
-                  paginationModel: { page: 0, pageSize: 10000 },
+                  paginationModel: { page: 0, pageSize: 100 },
                 },
               }}
-              hideFooterPagination={true}
+              pageSizeOptions={[25, 50, 100]}
               slots={{ toolbar: EditToolbar }}
               slotProps={{ toolbar: { setRows, setRowModesModel } }}
               sx={{

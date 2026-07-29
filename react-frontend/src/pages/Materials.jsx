@@ -337,10 +337,10 @@ const Materials = () => {
             slots={{ toolbar: GridToolbar }}
             initialState={{
               pagination: {
-                paginationModel: { page: 0, pageSize: 10000 },
+                paginationModel: { page: 0, pageSize: 100 },
               },
             }}
-            hideFooterPagination={true}
+            pageSizeOptions={[25, 50, 100]}
             disableRowSelectionOnClick
             sx={{
               border: 0,

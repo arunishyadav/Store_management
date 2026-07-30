@@ -70,6 +70,14 @@ const MISReport = () => {
       end.setHours(23, 59, 59, 999);
 
       const aggregatedData = {};
+      
+      const getNormalizedDate = (d) => {
+          if (!d) return 'nodate';
+          if (d instanceof Date) {
+              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          }
+          return String(d).substring(0, 10);
+      };
 
       materials.forEach(mat => {
           const matEntries = entries.filter(e => e.material?.id === mat.id);
@@ -80,12 +88,10 @@ const MISReport = () => {
           let issuedRange = 0;
 
           matEntries.forEach(e => {
-             const bill = (e.billNumber || '').trim();
-             const arrDate = e.arrivalDate || 'nodate';
+             const arrDate = getNormalizedDate(e.arrivalDate);
              const arrTime = e.arrivalTime || 'notime';
-             const brought = e.broughtBy || 'nobroughtby';
-             const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;
              const arrQty = parseFloat(e.arrivalQuantity || 0);
+             const key = `${arrDate}_${arrTime}_${arrQty}`;
              const outQty = parseFloat(e.outgoingQuantity || 0);
              
              const arrDateObj = e.arrivalDate ? new Date(e.arrivalDate) : new Date(0);

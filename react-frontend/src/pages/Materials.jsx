@@ -48,15 +48,21 @@ const Materials = () => {
 
       const formattedRows = uniqueMaterials.map(mat => {
         const matEntries = entries.filter(e => mat.ids.includes(e.material?.id));
+        const getNormalizedDate = (d) => {
+            if (!d) return 'nodate';
+            if (d instanceof Date) {
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            }
+            return String(d).substring(0, 10);
+        };
+
         const calculateGroupedArrival = (entriesList) => {
             let arrivalGroups = {};
             entriesList.forEach(e => {
-                const bill = (e.billNumber || '').trim();
-                const arrDate = e.arrivalDate || 'nodate';
+                const arrDate = getNormalizedDate(e.arrivalDate);
                 const arrTime = e.arrivalTime || 'notime';
-                const brought = e.broughtBy || 'nobroughtby';
-                const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;
                 const arrQty = parseFloat(e.arrivalQuantity || 0);
+                const key = `${arrDate}_${arrTime}_${arrQty}`;
                 if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
                     arrivalGroups[key] = arrQty;
                 }

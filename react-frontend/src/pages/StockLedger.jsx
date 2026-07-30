@@ -187,12 +187,10 @@ const calculateStockState = (row, allBackendRows) => {
     
     for (let i = 0; i < materialRows.length; i++) {
         const r = materialRows[i];
-        const bill = (r.billNumber || '').trim();
         const arrDate = getNormalizedDate(r.arrivalDate);
         const arrTime = r.arrivalTime || 'notime';
-        const brought = r.broughtBy || 'nobroughtby';
-        const key = bill !== '' ? bill : `${arrDate}_${arrTime}_${brought}`;
         const arrQty = parseFloat(r.arrivalQuantity || 0);
+        const key = `${arrDate}_${arrTime}_${arrQty}`;
         
         if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
             arrivalGroups[key] = arrQty;

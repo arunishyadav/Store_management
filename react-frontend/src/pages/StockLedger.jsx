@@ -149,7 +149,7 @@ const calculateStockState = (row, allBackendRows) => {
         allRows.push(row);
     }
     
-    const materialRows = allRows.filter(r => r.materialCode === row.materialCode);
+    const materialRows = allRows.filter(r => r.materialCode === row.materialCode).map((r, i) => ({ ...r, _index: i }));
     
     const getNormalizedDate = (d) => {
         if (!d) return 'nodate';
@@ -178,7 +178,10 @@ const calculateStockState = (row, allBackendRows) => {
         if (outA === 0 && outB > 0) return -1;
         if (outA > 0 && outB === 0) return 1;
 
-        return 0;
+        // 3. If dates and types are equal, process them in REVERSE visual order (Bottom to Top)
+        // Since DataGrid displays top-to-bottom based on allRows index, reversing the index
+        // ensures the running balance flows logically from the bottom of the screen to the top!
+        return b._index - a._index;
     });
 
     let arrivalGroups = {};

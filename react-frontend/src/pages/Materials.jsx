@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, Paper, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Box, Typography, Button, Paper, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete } from '@mui/material';
 import { DataGrid, GridRowModes, GridToolbar, GridActionsCellItem } from '@mui/x-data-grid';
 import { Add as AddIcon, Edit as EditIcon, DeleteOutlined as DeleteIcon, Save as SaveIcon, Close as CancelIcon } from '@mui/icons-material';
 import api from '../services/api';
@@ -366,7 +366,20 @@ const Materials = () => {
               <Typography variant="subtitle2" color="primary" gutterBottom>Master Details (Required)</Typography>
               <TextField autoFocus margin="dense" label="Item Code (e.g. MAT-123)" fullWidth variant="outlined" value={newMat.code} onChange={e => setNewMat({...newMat, code: e.target.value})} />
               <TextField margin="dense" label="Item Name" fullWidth variant="outlined" value={newMat.name} onChange={e => setNewMat({...newMat, name: e.target.value})} />
-              <TextField margin="dense" label="Category" fullWidth variant="outlined" value={newMat.category} onChange={e => setNewMat({...newMat, category: e.target.value})} />
+              <Autocomplete
+                  freeSolo
+                  options={['Hardware', 'civil', 'mechanical', 'electricity', 'fabrication', 'Other']}
+                  value={newMat.category}
+                  onChange={(event, newValue) => {
+                      setNewMat({...newMat, category: newValue || ''});
+                  }}
+                  onInputChange={(event, newInputValue) => {
+                      setNewMat({...newMat, category: newInputValue});
+                  }}
+                  renderInput={(params) => (
+                      <TextField {...params} margin="dense" label="Category" fullWidth variant="outlined" />
+                  )}
+              />
               
               <Typography variant="subtitle2" color="primary" sx={{ mt: 2 }} gutterBottom>Initial Stock Entry (Optional)</Typography>
               <TextField margin="dense" label="Arrival Quantity" type="number" fullWidth variant="outlined" value={newMat.arrivalQuantity} onChange={e => setNewMat({...newMat, arrivalQuantity: e.target.value})} />

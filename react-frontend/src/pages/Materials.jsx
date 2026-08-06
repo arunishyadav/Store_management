@@ -368,7 +368,7 @@ const Materials = () => {
               <TextField margin="dense" label="Item Name" fullWidth variant="outlined" value={newMat.name} onChange={e => setNewMat({...newMat, name: e.target.value})} />
               <Autocomplete
                   freeSolo
-                  options={['Hardware', 'civil', 'mechanical', 'electricity', 'fabrication', 'Other']}
+                  options={['Hardware', 'Civil', 'Mechanical', 'Electrical', 'Fabrication', 'Other']}
                   value={newMat.category}
                   onChange={(event, newValue) => {
                       setNewMat({...newMat, category: newValue || ''});

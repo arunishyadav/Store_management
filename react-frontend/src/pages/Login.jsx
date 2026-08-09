@@ -268,20 +268,6 @@ const Login = () => {
           </Box>
         </CardContent>
       </Card>
-
-      <Box sx={{ mt: 4, textAlign: 'center', opacity: 0.7, maxWidth: '600px', px: 2 }}>
-        <Typography variant="caption" display="block" gutterBottom sx={{ fontWeight: 'bold' }}>
-          Finsen Store - Enterprise Inventory & Store Management System
-        </Typography>
-        <Typography variant="caption" display="block" gutterBottom>
-          Owned by Aniket Awasthi &bull; Account Head: Sachin Soni
-        </Typography>
-        <Typography variant="caption" display="block">
-          Developed & Maintained by IT Engineer Arunish Yadav
-          <br />
-          Email: arunishyadav121@gmail.com | Phone: +91 7858937433
-        </Typography>
-      </Box>
     </Box>
   );
 };

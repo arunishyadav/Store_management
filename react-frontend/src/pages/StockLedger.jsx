@@ -855,7 +855,6 @@ export default function StockLedger() {
                 slotProps={{ toolbar: { setRows, setRowModesModel, searchQuery, setSearchQuery, availabilityFilter, setAvailabilityFilter, startDate, setStartDate, endDate, setEndDate, dateFilter, setDateFilter, handleExportCSV, handlePrintPDF } }}
                 sx={{
                    border: 'none',
-                   '& .MuiDataGrid-main': { overflow: 'visible' },
                    '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#f8fafc' }
                 }}
               />

@@ -86,10 +86,16 @@ function AutocompleteEditCell(props) {
     }
   };
 
-  const options = materials.map(m => ({
-     value: m.materialCode,
-     label: `${m.materialCode} - ${m.name}`
-  }));
+  const uniqueOptionsMap = {};
+  materials.forEach(m => {
+     if (m.materialCode && !uniqueOptionsMap[m.materialCode.trim().toLowerCase()]) {
+        uniqueOptionsMap[m.materialCode.trim().toLowerCase()] = {
+           value: m.materialCode,
+           label: `${m.materialCode} - ${m.name}`
+        };
+     }
+  });
+  const options = Object.values(uniqueOptionsMap);
 
   const selectedOption = options.find((opt) => opt.value === value) || null;
 
@@ -401,7 +407,15 @@ export default function StockLedger() {
       ];
       
       setRows(formattedRows);
-      setMaterials(matRes.data);
+
+      // Deduplicate materials by materialCode so dropdown contains unique items ONLY
+      const uniqueMatMap = {};
+      matRes.data.forEach(m => {
+        if (m.materialCode && !uniqueMatMap[m.materialCode.trim().toLowerCase()]) {
+          uniqueMatMap[m.materialCode.trim().toLowerCase()] = m;
+        }
+      });
+      setMaterials(Object.values(uniqueMatMap));
     } catch (error) {
       console.error("Error fetching ledger data:", error);
     }
@@ -1128,7 +1142,15 @@ export default function StockLedger() {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
               <Autocomplete
                 freeSolo
-                options={materials.map(m => ({ code: m.materialCode, name: m.name, category: m.category, id: m.id }))}
+                options={(() => {
+                  const uniqueMobileMap = {};
+                  materials.forEach(m => {
+                    if (m.materialCode && !uniqueMobileMap[m.materialCode.trim().toLowerCase()]) {
+                      uniqueMobileMap[m.materialCode.trim().toLowerCase()] = { code: m.materialCode, name: m.name, category: m.category, id: m.id };
+                    }
+                  });
+                  return Object.values(uniqueMobileMap);
+                })()}
                 getOptionLabel={(option) => typeof option === 'string' ? option : option.code ? `${option.code} - ${option.name}` : ''}
                 renderOption={(props, option) => (
                   <Box component="li" {...props} key={option.id}>

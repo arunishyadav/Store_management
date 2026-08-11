@@ -483,40 +483,54 @@ export default function StockLedger() {
       setRows(rows.filter((row) => row.id !== id));
     }
   };
-
   const processRowUpdate = async (newRow) => {
     const updatedRow = { ...newRow, isNew: false };
     
-    // Auto Calculate (only total, leave availableInStore manual)
+    // Auto Calculate
     const arr = parseFloat(newRow.arrivalQuantity || 0);
     const out = parseFloat(newRow.outgoingQuantity || 0);
     updatedRow.totalAvailableQty = arr - out;
 
-    // Check if we are issuing more than available
-    if (!updatedRow.isNew && out > 0) {
+    // Check stock balance before issuing
+    if (out > 0) {
         const stockState = calculateStockState({ ...updatedRow, outgoingQuantity: 0, isNew: true }, globalAllStockEntries);
-        if (out > stockState.runningBalance && stockState.runningBalance >= 0) {
-            // Note: We allow edit if they are fixing a mistake, but we warn them.
-            // If they are creating a new issue, we throw an error!
-            const isNewToBackend = !globalAllStockEntries.some(r => r.id === newRow.id);
-            if (isNewToBackend) {
-                throw new Error(`Cannot issue ${out}. Only ${stockState.runningBalance} available in store.`);
-            }
+        const isNewToBackend = !globalAllStockEntries.some(r => r.id === newRow.id);
+        if (isNewToBackend && out > stockState.runningBalance && stockState.runningBalance >= 0) {
+            throw new Error(`Cannot issue ${out} pcs. Only ${stockState.runningBalance} pcs available in store!`);
         }
     }
 
-    // Handle material manually
-    let finalMaterialId = null;
-    let finalMaterial = null;
+    // Match material case-insensitively
+    let finalMaterialId = updatedRow.materialId || null;
     if (newRow.materialCode) {
-       let mat = materials.find(m => m.materialCode === newRow.materialCode);
+       let mat = materials.find(m => m.materialCode && String(m.materialCode).trim().toLowerCase() === String(newRow.materialCode).trim().toLowerCase());
        if (mat) {
           finalMaterialId = mat.id;
-          finalMaterial = mat;
+       } else {
+          let stockMatch = globalAllStockEntries.find(r => r.materialCode && String(r.materialCode).trim().toLowerCase() === String(newRow.materialCode).trim().toLowerCase());
+          if (stockMatch) {
+             finalMaterialId = stockMatch.material?.id || stockMatch.materialId;
+          }
        }
     }
 
-    // Format dates for backend using local time (avoid UTC offset shifting the day)
+    // Auto-create material if code is new
+    if (!finalMaterialId && newRow.materialCode) {
+       try {
+          const createMatRes = await api.post('/api/v1/materials', {
+             materialCode: String(newRow.materialCode).trim(),
+             name: newRow.materialName || newRow.materialCode,
+             category: 'Hardware',
+             location: { id: locationId }
+          });
+          if (createMatRes.data && createMatRes.data.id) {
+             finalMaterialId = createMatRes.data.id;
+          }
+       } catch (e) {
+          console.error("Auto material creation error:", e);
+       }
+    }
+
     const formatDate = (dateVal) => {
        if (!dateVal) return null;
        const d = new Date(dateVal);
@@ -537,7 +551,6 @@ export default function StockLedger() {
        return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:${parts[2].padStart(2, '0')}`;
     };
 
-    // Prepare payload
     let payload = {
       ...updatedRow,
       arrivalDate: formatDate(updatedRow.arrivalDate),
@@ -547,31 +560,31 @@ export default function StockLedger() {
       material: finalMaterialId ? { id: finalMaterialId } : null
     };
 
-
-
-    if (!payload.material) {
-        throw new Error("Please select a valid Item Code");
+    if (!payload.materialCode) {
+        throw new Error("Please enter or select an Item Code");
     }
 
     try {
       let res;
-      if (newRow.isNew) {
-         // Create
+      if (newRow.isNew || String(newRow.id).startsWith('mat-')) {
+         payload.id = null;
          res = await api.post('/api/v1/stock-entries', payload);
       } else {
-         // Update
          res = await api.put(`/api/v1/stock-entries/${newRow.id}`, payload);
       }
       
+      const savedRow = res.data;
       const finalRow = {
-        ...res.data,
-        materialName: res.data.material?.name
+        ...savedRow,
+        materialName: (savedRow.materialName && String(savedRow.materialName).trim()) ? savedRow.materialName : (savedRow.material?.name || updatedRow.materialName || '')
       };
       
-      setRows(rows.map((row) => (row.id === newRow.id ? finalRow : row)));
+      setRows((prevRows) => prevRows.map((row) => (row.id === newRow.id ? finalRow : row)));
+      fetchData();
       return finalRow;
     } catch (error) {
-      console.error("Save failed", error);
+      console.error("Save stock entry failed:", error);
+      alert(error.response?.data?.message || error.message || "Failed to save stock entry");
       throw error;
     }
   };

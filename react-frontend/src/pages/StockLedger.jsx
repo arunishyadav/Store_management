@@ -824,13 +824,14 @@ export default function StockLedger() {
   };
 
   return (
-    <Box sx={{ p: { xs: 0, sm: 1, md: 2 }, height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', maxWidth: '100vw', boxSizing: 'border-box' }}>
+  return (
+    <Box sx={{ p: { xs: 0, sm: 1, md: 2 }, height: { xs: 'auto', md: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', maxWidth: '100vw', boxSizing: 'border-box' }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mt: { xs: 0.5, sm: 0 }, px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
         Entry Book
       </Typography>
-      <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0, borderRadius: { xs: 2, sm: 3 } }}>
+      <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: { xs: 'visible', md: 'hidden' }, minHeight: 0, borderRadius: { xs: 2, sm: 3 } }}>
         {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
+           <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (
           <>
             {/* Desktop View (md+) */}
@@ -861,7 +862,7 @@ export default function StockLedger() {
             </Box>
 
             {/* Mobile View (< md) */}
-            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', width: '100%' }}>
               {/* Mobile Toolbar */}
               <Box sx={{ p: 1.5, borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1.5, backgroundColor: '#ffffff' }}>
                 <TextField
@@ -976,7 +977,7 @@ export default function StockLedger() {
               </Box>
 
               {/* Cards List */}
-              <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 1.5, backgroundColor: '#f8fafc' }}>
+              <Box sx={{ p: 1.5, backgroundColor: '#f8fafc' }}>
                 {filteredRows.length === 0 ? (
                   <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
                     <Typography variant="body1">No records found matching search / date.</Typography>

@@ -415,7 +415,7 @@ const Materials = () => {
   };
 
   return (
-    <Box sx={{ height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
+    <Box sx={{ height: { xs: 'auto', md: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
       {/* Header Bar */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1.5 }}>
@@ -528,7 +528,7 @@ const Materials = () => {
         </Box>
       </Box>
 
-      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', overflow: { xs: 'visible', md: 'hidden' }, minHeight: 0 }}>
         {loading ? (
            <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (
@@ -563,8 +563,8 @@ const Materials = () => {
             </Box>
 
             {/* Mobile View (< md) */}
-            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-              <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 1.5, backgroundColor: '#f8fafc' }}>
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', width: '100%' }}>
+              <Box sx={{ p: 1.5, backgroundColor: '#f8fafc' }}>
                 {filteredRows.length === 0 ? (
                   <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
                     <Typography variant="body1">No materials found.</Typography>

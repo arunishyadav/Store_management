@@ -246,10 +246,6 @@ function NameEditCell(props) {
   );
 }
 
-    }
-    return { runningBalance: 0, available: 'NO' };
-};
-
 function EditToolbar(props) {
   const { setRows, setRowModesModel, searchQuery, setSearchQuery, availabilityFilter, setAvailabilityFilter, startDate, setStartDate, endDate, setEndDate, dateFilter, setDateFilter, handleExportCSV, handlePrintPDF, currentUser, todayStr } = props;
   const handleClick = () => {

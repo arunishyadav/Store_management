@@ -53,7 +53,11 @@ const Materials = () => {
       const uniqueMaterials = Object.values(uniqueMaterialsMap);
 
       const formattedRows = uniqueMaterials.map(mat => {
-        const matEntries = entries.filter(e => mat.ids.includes(e.material?.id));
+        const matEntries = entries.filter(e => 
+          mat.ids.includes(e.material?.id) ||
+          (e.materialCode && String(e.materialCode).trim().toLowerCase() === String(mat.materialCode).trim().toLowerCase())
+        );
+
         const getNormalizedDate = (d) => {
             if (!d) return 'nodate';
             if (d instanceof Date) {
@@ -80,18 +84,34 @@ const Materials = () => {
 
         const totalArrival = calculateGroupedArrival(matEntries);
         const totalOutgoing = matEntries.reduce((sum, e) => sum + parseFloat(e.outgoingQuantity || 0), 0);
-        const nowQuantity = totalArrival - totalOutgoing;
+        const nowQuantity = totalArrival - totalOutgoing; // STORE BALANCE (e.g. 7)
         const availableInStore = nowQuantity > 0 ? 'YES' : 'NO';
         
-        const hasActivity = selectedDate 
-            ? matEntries.some(e => e.arrivalDate && e.arrivalDate.startsWith(selectedDate))
+        // Filter entries for the SELECTED DATE (or date range)
+        let filteredMatEntries = matEntries;
+        if (startDate && endDate) {
+            filteredMatEntries = matEntries.filter(e => {
+                const d = e.arrivalDate ? String(e.arrivalDate).substring(0, 10) : '';
+                return d >= startDate && d <= endDate;
+            });
+        } else if (selectedDate) {
+            filteredMatEntries = matEntries.filter(e => e.arrivalDate && e.arrivalDate.startsWith(selectedDate));
+        }
+
+        // Calculate arrival quantity FOR THE FILTERED DATE / PERIOD
+        const dateArrivalQty = (selectedDate || (startDate && endDate))
+            ? calculateGroupedArrival(filteredMatEntries)
+            : totalArrival;
+
+        const hasActivity = (selectedDate || (startDate && endDate))
+            ? filteredMatEntries.length > 0
             : true;
 
-        const sortedArrivals = matEntries
+        const sortedArrivals = filteredMatEntries
             .filter(e => e.arrivalDate)
-            .sort((a, b) => new Date(a.arrivalDate) - new Date(b.arrivalDate)); // OLDEST first
+            .sort((a, b) => new Date(b.arrivalDate) - new Date(a.arrivalDate)); // NEWEST first for that date
             
-        const latestEntry = sortedArrivals.length > 0 ? sortedArrivals[0] : null;
+        const latestEntry = sortedArrivals.length > 0 ? sortedArrivals[0] : (matEntries[0] || null);
         const arrivalDateStr = latestEntry && latestEntry.arrivalDate ? new Date(latestEntry.arrivalDate).toLocaleDateString() : 'N/A';
         const arrivalTimeStr = latestEntry && latestEntry.arrivalTime ? latestEntry.arrivalTime : '';
         const arrivalDateTime = arrivalDateStr !== 'N/A' ? `${arrivalDateStr} ${arrivalTimeStr}`.trim() : 'N/A';
@@ -103,7 +123,7 @@ const Materials = () => {
           materialCode: mat.materialCode,
           name: mat.name,
           category: mat.category,
-          arrivalQuantity: totalArrival,
+          arrivalQuantity: dateArrivalQty,
           arrivalDate: arrivalDateTime,
           laneWalaName: laneWalaName,
           nowQuantity: nowQuantity,
@@ -113,8 +133,12 @@ const Materials = () => {
       });
 
       setAllUniqueMaterials(formattedRows);
-      const displayRows = selectedDate ? formattedRows.filter(r => r.hasActivityToday) : formattedRows;
-      setRows(displayRows);
+      
+      const filtered = (selectedDate || (startDate && endDate)) 
+        ? formattedRows.filter(r => r.hasActivityToday) 
+        : formattedRows;
+        
+      setRows(filtered);
     } catch (error) {
       console.error("Error fetching materials data:", error);
     }
@@ -139,8 +163,19 @@ const Materials = () => {
           let targetMaterialId;
 
           if (existingMaterial) {
-              // Reuse existing material ID
+              // Reuse existing material ID & update name if changed!
               targetMaterialId = existingMaterial.id;
+              const idsToUpdate = existingMaterial.ids || [existingMaterial.id];
+              await Promise.all(idsToUpdate.map(dupId => 
+                api.put(`/api/v1/materials/${dupId}`, {
+                  name: trimmedName,
+                  materialCode: trimmedCode,
+                  category: newMat.category || existingMaterial.category || 'Hardware',
+                  unit: 'Nos',
+                  minQuantity: 1,
+                  location: { id: locationId }
+                })
+              ));
           } else {
               // Create the new Material
               const matRes = await api.post('/api/v1/materials', {

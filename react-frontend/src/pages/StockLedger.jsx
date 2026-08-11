@@ -631,12 +631,12 @@ export default function StockLedger() {
       },
     });
   }
-
   // Filters & State
   const [searchQuery, setSearchQuery] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState('ALL'); // 'ALL' | 'YES' | 'NO'
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [mobileEditOpen, setMobileEditOpen] = useState(false);
   const [mobileEditingRow, setMobileEditingRow] = useState(null);
 
@@ -655,8 +655,8 @@ export default function StockLedger() {
     setMobileEditOpen(true);
   };
 
-  const handleSelectMaterialInMobile = (selectedCode) => {
-    if (!selectedCode) return;
+  const handleMobileCodeChange = (e) => {
+    const selectedCode = e.target.value;
     
     const mat = materials.find(m => m.materialCode.toLowerCase() === selectedCode.toLowerCase());
     const matName = mat ? mat.name : '';
@@ -678,23 +678,15 @@ export default function StockLedger() {
       };
 
       if (lastEntry) {
-        if (lastEntry.billNumber) updated.billNumber = lastEntry.billNumber;
-        if (lastEntry.arrivalQuantity) updated.arrivalQuantity = lastEntry.arrivalQuantity;
-        if (lastEntry.arrivalDate) updated.arrivalDate = String(lastEntry.arrivalDate).substring(0, 10);
-        if (lastEntry.arrivalTime) updated.arrivalTime = lastEntry.arrivalTime;
-        if (lastEntry.broughtBy) updated.broughtBy = lastEntry.broughtBy;
-        if (lastEntry.storeInchargeName) updated.storeInchargeName = lastEntry.storeInchargeName;
-        if (lastEntry.productLength) updated.productLength = lastEntry.productLength;
-        if (lastEntry.innerDiameter) updated.innerDiameter = lastEntry.innerDiameter;
-        if (lastEntry.kg) updated.kg = lastEntry.kg;
+        updated.arrivalQuantity = lastEntry.arrivalQuantity || prev?.arrivalQuantity || '';
+        updated.arrivalDate = lastEntry.arrivalDate || prev?.arrivalDate || (dateFilter || todayStr);
+        updated.arrivalTime = lastEntry.arrivalTime || prev?.arrivalTime || '';
+        updated.broughtBy = lastEntry.broughtBy || prev?.broughtBy || '';
+        updated.storeInchargeName = lastEntry.storeInchargeName || prev?.storeInchargeName || '';
+        updated.productLength = lastEntry.productLength || prev?.productLength || '';
+        updated.innerDiameter = lastEntry.innerDiameter || prev?.innerDiameter || '';
+        updated.kg = lastEntry.kg || prev?.kg || '';
       }
-
-      const dummyRow = { id: prev?.id || uuidv4(), materialCode: selectedCode, isNew: true, outgoingQuantity: 0, arrivalDate: updated.arrivalDate || '' };
-      const stockState = calculateStockState(dummyRow, globalAllStockEntries);
-      if (stockState.runningBalance <= 0) {
-        alert(`Out of Stock! Material '${selectedCode}' is currently not available in the store (Balance: ${stockState.runningBalance}).`);
-      }
-
       return updated;
     });
   };
@@ -702,18 +694,57 @@ export default function StockLedger() {
   const handleMobileSave = async () => {
     if (!mobileEditingRow) return;
     try {
-      await processRowUpdate(mobileEditingRow);
+      let materialId = mobileEditingRow.materialId;
+      if (!materialId && mobileEditingRow.materialCode) {
+        const matMatch = materials.find(m => m.materialCode.toLowerCase() === mobileEditingRow.materialCode.toLowerCase());
+        if (matMatch) materialId = matMatch.id;
+      }
+      
+      const payload = {
+        id: mobileEditingRow.id.startsWith('mat-') ? null : mobileEditingRow.id,
+        billNumber: mobileEditingRow.billNumber || '',
+        material: materialId ? { id: materialId } : null,
+        materialCode: mobileEditingRow.materialCode,
+        materialName: mobileEditingRow.materialName,
+        arrivalQuantity: parseFloat(mobileEditingRow.arrivalQuantity || 0),
+        arrivalDate: mobileEditingRow.arrivalDate || null,
+        arrivalTime: mobileEditingRow.arrivalTime || null,
+        broughtBy: mobileEditingRow.broughtBy || '',
+        outgoingQuantity: parseFloat(mobileEditingRow.outgoingQuantity || 0),
+        issueDate: mobileEditingRow.issueDate || null,
+        issuedBy: mobileEditingRow.issuedBy || '',
+        storeInchargeName: mobileEditingRow.storeInchargeName || '',
+        productLength: mobileEditingRow.productLength || '',
+        innerDiameter: mobileEditingRow.innerDiameter || '',
+        kg: mobileEditingRow.kg || '',
+        location: { id: locationId }
+      };
+
+      await api.post('/api/v1/stock-entries', payload);
       setMobileEditOpen(false);
-      setMobileEditingRow(null);
       fetchData();
-    } catch (err) {
-      alert(err.message || "Failed to save record.");
+    } catch (error) {
+      console.error("Mobile save failed:", error);
+      alert("Failed to save record.");
     }
   };
 
+  const handleMobileDelete = async (id) => {
+    if (window.confirm("Are you sure you want to delete this entry?")) {
+      try {
+        await api.delete(`/api/v1/stock-entries/${id}`);
+        fetchData();
+      } catch (error) {
+        console.error("Delete failed", error);
+        alert("Failed to delete entry.");
+      }
+    }
+  };
+
+  // Filter rows logic
   const filteredRows = rows.filter(r => {
-    // 1. Stock Availability Filter (YES / NO / ALL)
     const stockState = calculateStockState(r, globalAllStockEntries);
+
     let matchesAvailability = true;
     if (availabilityFilter === 'YES') {
       matchesAvailability = stockState.runningBalance > 0;
@@ -721,7 +752,6 @@ export default function StockLedger() {
       matchesAvailability = stockState.runningBalance <= 0;
     }
 
-    // 2. Date Range Filter OR Single Date Filter
     let matchesDate = true;
     const entryDateStr = r.issueDate || r.arrivalDate || '';
     const entryDate = entryDateStr ? String(entryDateStr).substring(0, 10) : '';
@@ -739,7 +769,6 @@ export default function StockLedger() {
       }
     }
 
-    // 3. Smart Search Query
     let matchesSearch = true;
     if (searchQuery && searchQuery.trim() !== '') {
       const q = searchQuery.trim().toLowerCase();
@@ -764,30 +793,26 @@ export default function StockLedger() {
         issDate.includes(q) || length.includes(q) || dia.includes(q) || kgStr.includes(q)
       );
     }
-
     return matchesAvailability && matchesDate && matchesSearch;
   });
 
   const handleExportCSV = () => {
     const exportData = filteredRows.map(r => {
-      const stockState = calculateStockState(r, globalAllStockEntries);
+      const state = calculateStockState(r, globalAllStockEntries);
       return {
         'Bill Number': r.billNumber || 'N/A',
-        'Item Code': r.materialCode || 'N/A',
-        'Item Name': r.materialName || 'N/A',
-        'Arrival Quantity': r.arrivalQuantity || 0,
-        'Store Arrival Date': r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A',
+        'Material Code': r.materialCode || 'N/A',
+        'Material Name': r.materialName || 'N/A',
+        'Arrival Qty': r.arrivalQuantity || 0,
+        'Arrival Date': r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A',
         'Arrival Time': r.arrivalTime || '',
-        'Brought By (Lane Wala)': r.broughtBy || 'N/A',
-        'Available In Store': stockState.available,
-        'Outgoing Quantity': r.outgoingQuantity || 0,
+        'Brought By': r.broughtBy || 'N/A',
+        'Available Status': state.available,
+        'Outgoing Qty': r.outgoingQuantity || 0,
         'Issue Date': r.issueDate ? new Date(r.issueDate).toLocaleDateString() : 'N/A',
         'Issued By': r.issuedBy || 'N/A',
         'Store Incharge': r.storeInchargeName || 'N/A',
-        'Total Avl Q (Balance)': stockState.runningBalance,
-        'Length': r.productLength || '',
-        'Diameter': r.innerDiameter || '',
-        'KG': r.kg || ''
+        'Running Balance': state.runningBalance
       };
     });
     exportToCSV(exportData, `EntryBook_${availabilityFilter}_Stock_${new Date().toISOString().substring(0,10)}.csv`);
@@ -795,40 +820,40 @@ export default function StockLedger() {
 
   const handlePrintPDF = () => {
     const printData = filteredRows.map(r => {
-      const stockState = calculateStockState(r, globalAllStockEntries);
+      const state = calculateStockState(r, globalAllStockEntries);
       return {
-        billNumber: r.billNumber || 'N/A',
+        bill: r.billNumber || 'N/A',
         code: r.materialCode || 'N/A',
         name: r.materialName || 'N/A',
         arrivalQty: r.arrivalQuantity || 0,
-        outgoingQty: r.outgoingQuantity || 0,
-        balance: stockState.runningBalance,
-        available: stockState.available,
-        date: r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A',
+        arrivalDate: r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A',
         broughtBy: r.broughtBy || 'N/A',
-        issuedBy: r.issuedBy || 'N/A'
+        status: state.available,
+        outQty: r.outgoingQuantity || 0,
+        issueDate: r.issueDate ? new Date(r.issueDate).toLocaleDateString() : 'N/A',
+        issuedBy: r.issuedBy || 'N/A',
+        balance: state.runningBalance
       };
     });
-    printPDF(printData, `Entry Book (${availabilityFilter} Stock Report)`, [
-      { field: 'billNumber', headerName: 'Bill No' },
+    printPDF(printData, `Entry Book Ledger (${availabilityFilter})`, [
       { field: 'code', headerName: 'Item Code' },
-      { field: 'name', headerName: 'Name' },
-      { field: 'arrivalQty', headerName: 'Arrival' },
-      { field: 'outgoingQty', headerName: 'Outgoing' },
-      { field: 'balance', headerName: 'Balance' },
-      { field: 'available', headerName: 'Status' },
-      { field: 'date', headerName: 'Date' },
+      { field: 'name', headerName: 'Material Name' },
+      { field: 'arrivalQty', headerName: 'Arr Qty' },
+      { field: 'arrivalDate', headerName: 'Arr Date' },
       { field: 'broughtBy', headerName: 'Brought By' },
-      { field: 'issuedBy', headerName: 'Issued By' }
+      { field: 'status', headerName: 'Status' },
+      { field: 'outQty', headerName: 'Out Qty' },
+      { field: 'issuedBy', headerName: 'Issued By' },
+      { field: 'balance', headerName: 'Balance' }
     ]);
   };
 
   return (
-    <Box sx={{ p: { xs: 0, sm: 1, md: 2 }, height: { xs: 'auto', md: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', maxWidth: '100vw', boxSizing: 'border-box' }}>
+    <Box sx={{ p: { xs: 0, sm: 1, md: 2 }, height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', maxWidth: '100vw', boxSizing: 'border-box' }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mt: { xs: 0.5, sm: 0 }, px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
         Entry Book
       </Typography>
-      <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: { xs: 'visible', md: 'hidden' }, minHeight: 0, borderRadius: { xs: 2, sm: 3 } }}>
+      <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0, borderRadius: { xs: 2, sm: 3 } }}>
         {loading ? (
            <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (
@@ -860,33 +885,55 @@ export default function StockLedger() {
               />
             </Box>
 
-            {/* Mobile View (< md) */}
-            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', width: '100%' }}>
-              {/* Mobile Toolbar */}
-              <Box sx={{ p: 1.5, borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1.5, backgroundColor: '#ffffff' }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search by Code, Name, Issued By, Bill No..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" color="primary" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: searchQuery ? (
-                      <InputAdornment position="end">
-                        <Button size="small" sx={{ minWidth: 0, p: 0.2 }} onClick={() => setSearchQuery('')}>✕</Button>
-                      </InputAdornment>
-                    ) : null
-                  }}
-                />
+            {/* Mobile View (< md) with STICKY TOP TOOLBAR */}
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+              {/* Sticky Mobile Toolbar */}
+              <Box sx={{ 
+                p: 1.2, 
+                borderBottom: '1px solid #e2e8f0', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 1, 
+                backgroundColor: '#ffffff',
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+              }}>
+                {/* Row 1: Search + Filters Toggle Button */}
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Search Code, Name, Issued By, Bill..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon fontSize="small" color="primary" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: searchQuery ? (
+                        <InputAdornment position="end">
+                          <Button size="small" sx={{ minWidth: 0, p: 0.2 }} onClick={() => setSearchQuery('')}>✕</Button>
+                        </InputAdornment>
+                      ) : null
+                    }}
+                  />
+                  <Button
+                    size="small"
+                    variant={showMobileFilters ? "contained" : "outlined"}
+                    color="primary"
+                    onClick={() => setShowMobileFilters(!showMobileFilters)}
+                    sx={{ minWidth: '42px', px: 1, py: 0.7, fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                  >
+                    ⚙️
+                  </Button>
+                </Box>
 
-                {/* Stock Availability Filter (YES / NO / ALL) */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
-                  <Typography variant="caption" fontWeight="bold">Stock Filter:</Typography>
+                {/* Row 2: Stock Availability Toggle + Add Button */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                   <ToggleButtonGroup
                     size="small"
                     value={availabilityFilter}
@@ -895,88 +942,88 @@ export default function StockLedger() {
                     color="primary"
                   >
                     <ToggleButton value="ALL" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold' }}>ALL</ToggleButton>
-                    <ToggleButton value="YES" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold', color: 'success.main' }}>YES (In Stock)</ToggleButton>
-                    <ToggleButton value="NO" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold', color: 'error.main' }}>NO (Out of Stock)</ToggleButton>
+                    <ToggleButton value="YES" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold', color: 'success.main' }}>YES (Stock)</ToggleButton>
+                    <ToggleButton value="NO" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold', color: 'error.main' }}>NO (Out)</ToggleButton>
                   </ToggleButtonGroup>
+
+                  {currentUser?.role !== 'USER' && (
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      startIcon={<AddIcon fontSize="small" />}
+                      onClick={handleMobileAddClick}
+                      sx={{ py: 0.4, px: 1.2, fontWeight: 'bold', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                    >
+                      + Add
+                    </Button>
+                  )}
                 </Box>
 
-                {/* Export Buttons on Mobile */}
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV} fullWidth sx={{ fontWeight: 'bold' }}>
-                    Export CSV
-                  </Button>
-                  <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF} fullWidth sx={{ fontWeight: 'bold' }}>
-                    Print PDF
-                  </Button>
-                </Box>
-                
-                {/* Date Controls */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexGrow: 1 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Date:</Typography>
+                {/* Expandable Filters Section (Export CSV/PDF, Date Range) */}
+                {showMobileFilters && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1, borderTop: '1px dashed #e2e8f0' }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV} fullWidth sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                        Export CSV
+                      </Button>
+                      <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF} fullWidth sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                        Print PDF
+                      </Button>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexGrow: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Date:</Typography>
+                        <input
+                          type="date"
+                          value={dateFilter}
+                          onChange={(e) => {
+                            setDateFilter(e.target.value);
+                            if (e.target.value) { setStartDate(''); setEndDate(''); }
+                          }}
+                          style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.8rem', width: '100%' }}
+                        />
+                      </Box>
+                      <Button 
+                        variant={(!dateFilter && !startDate && !endDate) ? "contained" : "outlined"} 
+                        color={(!dateFilter && !startDate && !endDate) ? "secondary" : "inherit"}
+                        size="small" 
+                        onClick={() => { setDateFilter(''); setStartDate(''); setEndDate(''); }}
+                        sx={{ whiteSpace: 'nowrap', fontWeight: 'bold', px: 1, py: 0.3, fontSize: '0.75rem' }}
+                      >
+                        All Data
+                      </Button>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Range:</Typography>
                       <input
                         type="date"
-                        value={dateFilter}
+                        value={startDate}
                         onChange={(e) => {
-                          setDateFilter(e.target.value);
-                          if (e.target.value) { setStartDate(''); setEndDate(''); }
+                          setStartDate(e.target.value);
+                          if (e.target.value) setDateFilter('');
                         }}
-                        style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.85rem', width: '100%' }}
+                        style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.75rem', flexGrow: 1 }}
+                      />
+                      <Typography variant="caption">to</Typography>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => {
+                          setEndDate(e.target.value);
+                          if (e.target.value) setDateFilter('');
+                        }}
+                        style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.75rem', flexGrow: 1 }}
                       />
                     </Box>
-                    <Button 
-                      variant={(!dateFilter && !startDate && !endDate) ? "contained" : "outlined"} 
-                      color={(!dateFilter && !startDate && !endDate) ? "secondary" : "inherit"}
-                      size="small" 
-                      onClick={() => { setDateFilter(''); setStartDate(''); setEndDate(''); }}
-                      sx={{ whiteSpace: 'nowrap', fontWeight: 'bold', px: 1.5 }}
-                    >
-                      All Data
-                    </Button>
                   </Box>
-
-                  {/* Date Range Selector */}
-                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Range:</Typography>
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => {
-                        setStartDate(e.target.value);
-                        if (e.target.value) setDateFilter('');
-                      }}
-                      style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.75rem', flexGrow: 1 }}
-                    />
-                    <Typography variant="caption">to</Typography>
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => {
-                        setEndDate(e.target.value);
-                        if (e.target.value) setDateFilter('');
-                      }}
-                      style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.75rem', flexGrow: 1 }}
-                    />
-                  </Box>
-                </Box>
-                
-                {currentUser?.role !== 'USER' && (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    startIcon={<AddIcon />}
-                    fullWidth
-                    onClick={handleMobileAddClick}
-                    sx={{ py: 1, fontWeight: 'bold' }}
-                  >
-                    + Add New Record
-                  </Button>
                 )}
               </Box>
 
-              {/* Cards List */}
-              <Box sx={{ p: 1.5, backgroundColor: '#f8fafc' }}>
+              {/* Cards List container with full flex scroll */}
+              <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 1.5, backgroundColor: '#f8fafc' }}>
                 {filteredRows.length === 0 ? (
                   <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
                     <Typography variant="body1">No records found matching search / date.</Typography>

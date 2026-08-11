@@ -409,7 +409,7 @@ const MISReport = () => {
                        </Box>
 
                        {/* Mobile Cards View (< md) */}
-                       <Box sx={{ display: { xs: 'block', md: 'none' }, p: 1.5 }}>
+                       <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', flexGrow: 1, overflowY: 'auto', p: 1.5 }}>
                           <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
                              Closing Stock Breakdown
                           </Typography>

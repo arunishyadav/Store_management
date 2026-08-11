@@ -19,6 +19,7 @@ const Materials = () => {
   const currentUser = useAuthStore(state => state.user);
   const todayStr = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [open, setOpen] = useState(false);
   const [newMat, setNewMat] = useState({ 
     name: '', code: '', category: '', 
@@ -415,14 +416,14 @@ const Materials = () => {
   };
 
   return (
-    <Box sx={{ height: { xs: 'auto', md: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
+    <Box sx={{ height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
       {/* Header Bar */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: { xs: 1, md: 2 } }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1.5 }}>
           <Typography variant="h4" fontWeight="bold" sx={{ px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>Materials</Typography>
           
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', px: { xs: 1.5, sm: 0 } }}>
-            {/* Availability Filter Toggle */}
+          {/* Desktop Toolbar Controls */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Typography variant="caption" fontWeight="bold">Stock:</Typography>
               <ToggleButtonGroup
@@ -438,7 +439,6 @@ const Materials = () => {
               </ToggleButtonGroup>
             </Box>
 
-            {/* Export Buttons */}
             <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV}>
               Export CSV
             </Button>
@@ -463,8 +463,8 @@ const Materials = () => {
           </Box>
         </Box>
 
-        {/* Date Filter & Search Row */}
-        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', px: { xs: 1.5, sm: 0 } }}>
+        {/* Desktop Date & Search Row */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1.5, alignItems: 'center', flexWrap: 'wrap' }}>
           <TextField
             size="small"
             placeholder="Search code, name, category..."
@@ -528,7 +528,7 @@ const Materials = () => {
         </Box>
       </Box>
 
-      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', overflow: { xs: 'visible', md: 'hidden' }, minHeight: 0 }}>
+      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
         {loading ? (
            <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (
@@ -562,9 +562,143 @@ const Materials = () => {
               />
             </Box>
 
-            {/* Mobile View (< md) */}
-            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', width: '100%' }}>
-              <Box sx={{ p: 1.5, backgroundColor: '#f8fafc' }}>
+            {/* Mobile View (< md) with STICKY TOP TOOLBAR */}
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+              {/* Sticky Mobile Toolbar */}
+              <Box sx={{ 
+                p: 1.2, 
+                borderBottom: '1px solid #e2e8f0', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 1, 
+                backgroundColor: '#ffffff',
+                position: 'sticky',
+                top: 0,
+                zIndex: 10,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+              }}>
+                {/* Row 1: Search + Filters Toggle */}
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Search code, name, category..."
+                    value={mobileSearch}
+                    onChange={(e) => setMobileSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon fontSize="small" color="primary" />
+                        </InputAdornment>
+                      )
+                    }}
+                  />
+                  <Button
+                    size="small"
+                    variant={showMobileFilters ? "contained" : "outlined"}
+                    color="primary"
+                    onClick={() => setShowMobileFilters(!showMobileFilters)}
+                    sx={{ minWidth: '42px', px: 1, py: 0.7, fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                  >
+                    ⚙️
+                  </Button>
+                </Box>
+
+                {/* Row 2: Stock Availability Toggle + Add Material Button */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                  <ToggleButtonGroup
+                    size="small"
+                    value={availabilityFilter}
+                    exclusive
+                    onChange={(e, val) => val && setAvailabilityFilter(val)}
+                    color="primary"
+                  >
+                    <ToggleButton value="ALL" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold' }}>ALL</ToggleButton>
+                    <ToggleButton value="YES" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold', color: 'success.main' }}>YES (Stock)</ToggleButton>
+                    <ToggleButton value="NO" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold', color: 'error.main' }}>NO (Out)</ToggleButton>
+                  </ToggleButtonGroup>
+
+                  {currentUser?.role !== 'USER' && (
+                    <Button 
+                      variant="contained" 
+                      color="primary" 
+                      size="small"
+                      startIcon={<AddIcon fontSize="small" />} 
+                      onClick={() => {
+                        setNewMat(prev => ({ ...prev, arrivalDate: selectedDate || todayStr }));
+                        setOpen(true);
+                      }}
+                      sx={{ py: 0.4, px: 1.2, fontWeight: 'bold', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                    >
+                      + Add
+                    </Button>
+                  )}
+                </Box>
+
+                {/* Collapsible Filters & Export Controls */}
+                {showMobileFilters && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1, borderTop: '1px dashed #e2e8f0' }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV} fullWidth sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                        Export CSV
+                      </Button>
+                      <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF} fullWidth sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                        Print PDF
+                      </Button>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexGrow: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Date:</Typography>
+                        <input 
+                            type="date" 
+                            value={selectedDate} 
+                            onChange={(e) => {
+                              setSelectedDate(e.target.value);
+                              if (e.target.value) { setStartDate(''); setEndDate(''); }
+                            }} 
+                            style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.8rem', width: '100%' }}
+                        />
+                      </Box>
+                      <Button 
+                        variant={(!selectedDate && !startDate && !endDate) ? "contained" : "outlined"} 
+                        color={(!selectedDate && !startDate && !endDate) ? "secondary" : "inherit"}
+                        size="small" 
+                        onClick={() => { setSelectedDate(''); setStartDate(''); setEndDate(''); }}
+                        sx={{ whiteSpace: 'nowrap', fontWeight: 'bold', px: 1, py: 0.3, fontSize: '0.75rem' }}
+                      >
+                        All Data
+                      </Button>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Range:</Typography>
+                      <input 
+                          type="date" 
+                          value={startDate} 
+                          onChange={(e) => {
+                            setStartDate(e.target.value);
+                            if (e.target.value) setSelectedDate('');
+                          }} 
+                          style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.75rem', flexGrow: 1 }}
+                      />
+                      <Typography variant="caption">to</Typography>
+                      <input 
+                          type="date" 
+                          value={endDate} 
+                          onChange={(e) => {
+                            setEndDate(e.target.value);
+                            if (e.target.value) setSelectedDate('');
+                          }} 
+                          style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.75rem', flexGrow: 1 }}
+                      />
+                    </Box>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Cards List with full height scroll */}
+              <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 1.5, backgroundColor: '#f8fafc' }}>
                 {filteredRows.length === 0 ? (
                   <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
                     <Typography variant="body1">No materials found.</Typography>

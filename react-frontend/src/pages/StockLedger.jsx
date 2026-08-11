@@ -824,7 +824,6 @@ export default function StockLedger() {
   };
 
   return (
-  return (
     <Box sx={{ p: { xs: 0, sm: 1, md: 2 }, height: { xs: 'auto', md: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', maxWidth: '100vw', boxSizing: 'border-box' }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mt: { xs: 0.5, sm: 0 }, px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
         Entry Book

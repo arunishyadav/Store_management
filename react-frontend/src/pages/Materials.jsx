@@ -118,18 +118,36 @@ const Materials = () => {
 
   const handleAddSubmit = async () => {
       try {
-          // 1. Create the Material
-          const matRes = await api.post('/api/v1/materials', {
-              name: newMat.name,
-              materialCode: newMat.code,
-              category: newMat.category || 'Hardware',
-              unit: 'Nos',
-              minQuantity: 1,
-              location: { id: locationId }
-          });
-          const createdMaterial = matRes.data;
+          const trimmedCode = (newMat.code || '').trim();
+          const trimmedName = (newMat.name || '').trim();
+          
+          if (!trimmedCode || !trimmedName) {
+              alert("Please enter Item Code and Item Name.");
+              return;
+          }
 
-          // 2. Always create an initial Stock Entry so it appears in the Entry Book
+          // Check if a material with this code already exists
+          const existingMaterial = rows.find(r => r.materialCode.toLowerCase() === trimmedCode.toLowerCase());
+          
+          let targetMaterialId;
+
+          if (existingMaterial) {
+              // Reuse existing material ID
+              targetMaterialId = existingMaterial.id;
+          } else {
+              // Create the new Material
+              const matRes = await api.post('/api/v1/materials', {
+                  name: trimmedName,
+                  materialCode: trimmedCode,
+                  category: newMat.category || 'Hardware',
+                  unit: 'Nos',
+                  minQuantity: 1,
+                  location: { id: locationId }
+              });
+              targetMaterialId = matRes.data.id;
+          }
+
+          // Always create a Stock Entry for this arrival
           const formatTime = (timeVal) => {
              if (!timeVal) return null;
              let t = timeVal.trim();
@@ -141,7 +159,7 @@ const Materials = () => {
           };
           
           const payload = {
-            material: { id: createdMaterial.id },
+            material: { id: targetMaterialId },
             location: { id: locationId },
             arrivalQuantity: parseFloat(newMat.arrivalQuantity || 0),
             arrivalDate: newMat.arrivalDate || null,
@@ -159,11 +177,7 @@ const Materials = () => {
           setOpen(false);
       } catch (error) {
         console.error("Add Material Error", error);
-        let msg = "Failed to add material or its entry.";
-        if (error.response?.status === 500 || error.response?.status === 400) {
-            msg = "Failed! This Item Code might already exist, or invalid data was entered.";
-        }
-        alert(error.response?.data?.message || msg);
+        alert(error.response?.data?.message || "Failed to add material or its entry.");
       }
   };
 
@@ -364,8 +378,88 @@ const Materials = () => {
           <DialogTitle sx={{ fontWeight: 'bold' }}>Add New Material & Entry</DialogTitle>
           <DialogContent dividers>
               <Typography variant="subtitle2" color="primary" gutterBottom>Master Details (Required)</Typography>
-              <TextField autoFocus margin="dense" label="Item Code (e.g. MAT-123)" fullWidth variant="outlined" value={newMat.code} onChange={e => setNewMat({...newMat, code: e.target.value})} />
-              <TextField margin="dense" label="Item Name" fullWidth variant="outlined" value={newMat.name} onChange={e => setNewMat({...newMat, name: e.target.value})} />
+              <Autocomplete
+                  freeSolo
+                  options={rows.map(r => ({ code: r.materialCode, name: r.name, category: r.category, id: r.id }))}
+                  getOptionLabel={(option) => typeof option === 'string' ? option : option.code || ''}
+                  renderOption={(props, option) => (
+                      <Box component="li" {...props} key={option.id}>
+                          <Typography variant="body2">
+                              <strong>{option.code}</strong> - {option.name} ({option.category})
+                          </Typography>
+                      </Box>
+                  )}
+                  value={newMat.code}
+                  onChange={(event, newValue) => {
+                      if (typeof newValue === 'string') {
+                          setNewMat(prev => ({ ...prev, code: newValue }));
+                      } else if (newValue && newValue.code) {
+                          setNewMat(prev => ({
+                              ...prev,
+                              code: newValue.code,
+                              name: newValue.name,
+                              category: newValue.category || prev.category
+                          }));
+                      } else {
+                          setNewMat(prev => ({ ...prev, code: '' }));
+                      }
+                  }}
+                  onInputChange={(event, newInputValue) => {
+                      setNewMat(prev => ({ ...prev, code: newInputValue }));
+                      const match = rows.find(r => r.materialCode.toLowerCase() === (newInputValue || '').trim().toLowerCase());
+                      if (match) {
+                          setNewMat(prev => ({
+                              ...prev,
+                              name: match.name,
+                              category: match.category || prev.category
+                          }));
+                      }
+                  }}
+                  renderInput={(params) => (
+                      <TextField {...params} autoFocus margin="dense" label="Item Code (e.g. MAT-123)" fullWidth variant="outlined" />
+                  )}
+              />
+              <Autocomplete
+                  freeSolo
+                  options={rows.map(r => ({ code: r.materialCode, name: r.name, category: r.category, id: r.id }))}
+                  getOptionLabel={(option) => typeof option === 'string' ? option : option.name || ''}
+                  renderOption={(props, option) => (
+                      <Box component="li" {...props} key={'name-' + option.id}>
+                          <Typography variant="body2">
+                              {option.name} (<strong>{option.code}</strong>)
+                          </Typography>
+                      </Box>
+                  )}
+                  value={newMat.name}
+                  onChange={(event, newValue) => {
+                      if (typeof newValue === 'string') {
+                          setNewMat(prev => ({ ...prev, name: newValue }));
+                      } else if (newValue && newValue.name) {
+                          setNewMat(prev => ({
+                              ...prev,
+                              code: newValue.code,
+                              name: newValue.name,
+                              category: newValue.category || prev.category
+                          }));
+                      } else {
+                          setNewMat(prev => ({ ...prev, name: '' }));
+                      }
+                  }}
+                  onInputChange={(event, newInputValue) => {
+                      setNewMat(prev => ({ ...prev, name: newInputValue }));
+                      const match = rows.find(r => r.name.toLowerCase() === (newInputValue || '').trim().toLowerCase());
+                      if (match) {
+                          setNewMat(prev => ({
+                              ...prev,
+                              code: match.materialCode,
+                              category: match.category || prev.category
+                          }));
+                      }
+                  }}
+                  renderInput={(params) => (
+                      <TextField {...params} margin="dense" label="Item Name" fullWidth variant="outlined" />
+                  )}
+              />
               <Autocomplete
                   freeSolo
                   options={['Hardware', 'Civil', 'Mechanical', 'Electrical', 'Fabrication', 'Other']}

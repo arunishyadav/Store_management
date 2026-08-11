@@ -474,16 +474,6 @@ export default function StockLedger() {
        }
     }
 
-    // Check if user edited the name of the product
-    if (finalMaterial && newRow.materialName && newRow.materialName !== finalMaterial.name) {
-       try {
-           await api.put(`/api/v1/materials/${finalMaterialId}`, { ...finalMaterial, name: newRow.materialName });
-           setMaterials(prev => prev.map(m => m.id === finalMaterialId ? { ...m, name: newRow.materialName } : m));
-       } catch (e) {
-           console.error("Failed to update material name", e);
-       }
-    }
-
     // Format dates for backend using local time (avoid UTC offset shifting the day)
     const formatDate = (dateVal) => {
        if (!dateVal) return null;

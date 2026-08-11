@@ -118,11 +118,16 @@ const Materials = () => {
         const arrivalDateTime = arrivalDateStr !== 'N/A' ? `${arrivalDateStr} ${arrivalTimeStr}`.trim() : 'N/A';
         const laneWalaName = latestEntry ? (latestEntry.broughtBy || 'N/A') : 'N/A';
 
+        // Date-specific item name from entry (e.g. 'karni 5 pcs' vs 'karni 2 pcs')
+        const dateSpecificName = (latestEntry && latestEntry.materialName && latestEntry.materialName.trim())
+            ? latestEntry.materialName
+            : mat.name;
+
         return {
           id: mat.id,
           ids: mat.ids,
           materialCode: mat.materialCode,
-          name: mat.name,
+          name: dateSpecificName,
           category: mat.category,
           arrivalQuantity: dateArrivalQty,
           arrivalDate: arrivalDateTime,
@@ -164,19 +169,8 @@ const Materials = () => {
           let targetMaterialId;
 
           if (existingMaterial) {
-              // Reuse existing material ID & update name if changed!
+              // Reuse existing material ID (keep entry-specific materialName in stock entry!)
               targetMaterialId = existingMaterial.id;
-              const idsToUpdate = existingMaterial.ids || [existingMaterial.id];
-              await Promise.all(idsToUpdate.map(dupId => 
-                api.put(`/api/v1/materials/${dupId}`, {
-                  name: trimmedName,
-                  materialCode: trimmedCode,
-                  category: newMat.category || existingMaterial.category || 'Hardware',
-                  unit: 'Nos',
-                  minQuantity: 1,
-                  location: { id: locationId }
-                })
-              ));
           } else {
               // Create the new Material
               const matRes = await api.post('/api/v1/materials', {
@@ -203,6 +197,8 @@ const Materials = () => {
           
           const payload = {
             material: { id: targetMaterialId },
+            materialCode: trimmedCode,
+            materialName: trimmedName,
             location: { id: locationId },
             arrivalQuantity: parseFloat(newMat.arrivalQuantity || 0),
             arrivalDate: newMat.arrivalDate || null,

@@ -244,8 +244,29 @@ export default function StockLedger() {
       
       globalAllStockEntries = mapped;
 
-      // Format rows for DataGrid: Hide pure initial stock entries so they don't clutter the ledger automatically
-      const formattedRows = mapped.filter(r => r.issuedBy !== 'INITIAL_STOCK');
+      // Include all stock entries (including initial stock) + master materials so All Data shows 100% complete records
+      const existingMatIds = new Set(mapped.map(r => r.materialId).filter(Boolean));
+      const masterOnlyRows = matRes.data
+        .filter(m => !existingMatIds.has(m.id))
+        .map(m => ({
+           id: `mat-${m.id}`,
+           materialId: m.id,
+           materialCode: m.materialCode,
+           materialName: m.name,
+           arrivalQuantity: 0,
+           outgoingQuantity: 0,
+           arrivalDate: m.createdAt ? String(m.createdAt).substring(0, 10) : todayStr,
+           broughtBy: 'Master Material',
+           issuedBy: 'N/A'
+        }));
+
+      const formattedRows = [
+        ...mapped.map(r => ({
+           ...r,
+           issuedBy: r.issuedBy === 'INITIAL_STOCK' ? 'Store Initial Stock' : (r.issuedBy || 'N/A')
+        })),
+        ...masterOnlyRows
+      ];
       
       setRows(formattedRows);
       setMaterials(matRes.data);

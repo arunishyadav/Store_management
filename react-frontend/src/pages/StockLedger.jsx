@@ -212,6 +212,134 @@ const calculateStockState = (row, allBackendRows) => {
     return { runningBalance: 0, available: 'NO' };
 };
 
+function EditToolbar(props) {
+  const { setRows, setRowModesModel, searchQuery, setSearchQuery, availabilityFilter, setAvailabilityFilter, startDate, setStartDate, endDate, setEndDate, dateFilter, setDateFilter, handleExportCSV, handlePrintPDF, currentUser, todayStr } = props;
+  const handleClick = () => {
+    const id = uuidv4();
+    const newArrivalDate = dateFilter || todayStr;
+    setRows((oldRows) => [{ ...initialRow, id, isNew: true, arrivalDate: newArrivalDate }, ...oldRows]);
+    setRowModesModel((oldModel) => ({
+      ...oldModel,
+      [id]: { mode: GridRowModes.Edit, fieldToFocus: 'billNumber' },
+    }));
+  };
+  return (
+    <GridToolbarContainer sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', p: { xs: 1, sm: 1.5 }, gap: 1 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', md: 'row' }, 
+        justifyContent: 'space-between', 
+        alignItems: { xs: 'stretch', md: 'center' }, 
+        gap: 1.5, 
+        width: '100%' 
+      }}>
+          {currentUser?.role !== 'USER' ? (
+            <Button color="primary" variant="contained" startIcon={<AddIcon />} onClick={handleClick} sx={{ width: { xs: '100%', sm: 'auto' } }}>
+              Add record
+            </Button>
+          ) : <Box />}
+
+          <TextField
+            size="small"
+            placeholder="Search by Code, Name, Issued By, Bill No, Incharge, Brought By..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ minWidth: { xs: '100%', sm: '320px' }, backgroundColor: '#ffffff' }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" color="primary" />
+                </InputAdornment>
+              ),
+              endAdornment: searchQuery ? (
+                <InputAdornment position="end">
+                  <Button size="small" sx={{ minWidth: 0, p: 0.2 }} onClick={() => setSearchQuery('')}>✕</Button>
+                </InputAdornment>
+              ) : null
+            }}
+          />
+
+          {/* Stock Availability Filter (YES / NO / ALL) */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Typography variant="caption" fontWeight="bold" sx={{ mr: 0.5 }}>Stock:</Typography>
+            <ToggleButtonGroup
+              size="small"
+              value={availabilityFilter}
+              exclusive
+              onChange={(e, val) => val && setAvailabilityFilter(val)}
+              color="primary"
+            >
+              <ToggleButton value="ALL" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold' }}>ALL</ToggleButton>
+              <ToggleButton value="YES" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'success.main' }}>YES (In Stock)</ToggleButton>
+              <ToggleButton value="NO" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'error.main' }}>NO (Out of Stock)</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {/* Export Buttons */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV}>
+              Export CSV
+            </Button>
+            <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF}>
+              Print PDF
+            </Button>
+          </Box>
+      </Box>
+
+      {/* Date Filters Bar */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', pt: 0.5, borderTop: '1px solid #f0f0f0' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Sheet Date:</Typography>
+              <input 
+                  type="date" 
+                  value={dateFilter} 
+                  onChange={(e) => {
+                    setDateFilter(e.target.value);
+                    if (e.target.value) { setStartDate(''); setEndDate(''); }
+                  }} 
+                  style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', maxWidth: '150px' }}
+              />
+          </Box>
+
+          <Typography variant="caption" color="text.secondary" fontWeight="bold">OR Date Range:</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (e.target.value) setDateFilter('');
+                  }} 
+                  style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', maxWidth: '140px' }}
+              />
+              <Typography variant="caption">to</Typography>
+              <input 
+                  type="date" 
+                  value={endDate} 
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    if (e.target.value) setDateFilter('');
+                  }} 
+                  style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', maxWidth: '140px' }}
+              />
+          </Box>
+
+          <Button 
+            variant={(!dateFilter && !startDate && !endDate) ? "contained" : "outlined"} 
+            color={(!dateFilter && !startDate && !endDate) ? "secondary" : "inherit"}
+            size="small" 
+            onClick={() => { setDateFilter(''); setStartDate(''); setEndDate(''); }}
+            sx={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}
+          >
+            All Data
+          </Button>
+      </Box>
+
+      <GridToolbar />
+    </GridToolbarContainer>
+  );
+}
+
 export default function StockLedger() {
   const [rows, setRows] = useState([]);
   const [rowModesModel, setRowModesModel] = useState({});
@@ -504,134 +632,6 @@ export default function StockLedger() {
     });
   }
 
-  function EditToolbar(props) {
-    const { setRows, setRowModesModel, searchQuery, setSearchQuery, availabilityFilter, setAvailabilityFilter, startDate, setStartDate, endDate, setEndDate, dateFilter, setDateFilter, handleExportCSV, handlePrintPDF } = props;
-    const handleClick = () => {
-      const id = uuidv4();
-      const newArrivalDate = dateFilter || todayStr;
-      setRows((oldRows) => [{ ...initialRow, id, isNew: true, arrivalDate: newArrivalDate }, ...oldRows]);
-      setRowModesModel((oldModel) => ({
-        ...oldModel,
-        [id]: { mode: GridRowModes.Edit, fieldToFocus: 'billNumber' },
-      }));
-    };
-    return (
-      <GridToolbarContainer sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', p: { xs: 1, sm: 1.5 }, gap: 1 }}>
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', md: 'row' }, 
-          justifyContent: 'space-between', 
-          alignItems: { xs: 'stretch', md: 'center' }, 
-          gap: 1.5, 
-          width: '100%' 
-        }}>
-            {currentUser?.role !== 'USER' ? (
-              <Button color="primary" variant="contained" startIcon={<AddIcon />} onClick={handleClick} sx={{ width: { xs: '100%', sm: 'auto' } }}>
-                Add record
-              </Button>
-            ) : <Box />}
-
-            <TextField
-              size="small"
-              placeholder="Search by Code, Name, Issued By, Bill No, Incharge, Brought By..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ minWidth: { xs: '100%', sm: '320px' }, backgroundColor: '#ffffff' }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" color="primary" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchQuery ? (
-                  <InputAdornment position="end">
-                    <Button size="small" sx={{ minWidth: 0, p: 0.2 }} onClick={() => setSearchQuery('')}>✕</Button>
-                  </InputAdornment>
-                ) : null
-              }}
-            />
-
-            {/* Stock Availability Filter (YES / NO / ALL) */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Typography variant="caption" fontWeight="bold" sx={{ mr: 0.5 }}>Stock:</Typography>
-              <ToggleButtonGroup
-                size="small"
-                value={availabilityFilter}
-                exclusive
-                onChange={(e, val) => val && setAvailabilityFilter(val)}
-                color="primary"
-              >
-                <ToggleButton value="ALL" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold' }}>ALL</ToggleButton>
-                <ToggleButton value="YES" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'success.main' }}>YES (In Stock)</ToggleButton>
-                <ToggleButton value="NO" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'error.main' }}>NO (Out of Stock)</ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-
-            {/* Export Buttons */}
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV}>
-                Export CSV
-              </Button>
-              <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF}>
-                Print PDF
-              </Button>
-            </Box>
-        </Box>
-
-        {/* Date Filters Bar */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', pt: 0.5, borderTop: '1px solid #f0f0f0' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="body2" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Sheet Date:</Typography>
-                <input 
-                    type="date" 
-                    value={dateFilter} 
-                    onChange={(e) => {
-                      setDateFilter(e.target.value);
-                      if (e.target.value) { setStartDate(''); setEndDate(''); }
-                    }} 
-                    style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', maxWidth: '150px' }}
-                />
-            </Box>
-
-            <Typography variant="caption" color="text.secondary" fontWeight="bold">OR Date Range:</Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <input 
-                    type="date" 
-                    value={startDate} 
-                    onChange={(e) => {
-                      setStartDate(e.target.value);
-                      if (e.target.value) setDateFilter('');
-                    }} 
-                    style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', maxWidth: '140px' }}
-                />
-                <Typography variant="caption">to</Typography>
-                <input 
-                    type="date" 
-                    value={endDate} 
-                    onChange={(e) => {
-                      setEndDate(e.target.value);
-                      if (e.target.value) setDateFilter('');
-                    }} 
-                    style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', maxWidth: '140px' }}
-                />
-            </Box>
-
-            <Button 
-              variant={(!dateFilter && !startDate && !endDate) ? "contained" : "outlined"} 
-              color={(!dateFilter && !startDate && !endDate) ? "secondary" : "inherit"}
-              size="small" 
-              onClick={() => { setDateFilter(''); setStartDate(''); setEndDate(''); }}
-              sx={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}
-            >
-              All Data
-            </Button>
-        </Box>
-
-        <GridToolbar />
-      </GridToolbarContainer>
-    );
-  }
-
   // Filters & State
   const [searchQuery, setSearchQuery] = useState('');
   const [availabilityFilter, setAvailabilityFilter] = useState('ALL'); // 'ALL' | 'YES' | 'NO'
@@ -852,7 +852,7 @@ export default function StockLedger() {
                 }}
                 pageSizeOptions={[25, 50, 100]}
                 slots={{ toolbar: EditToolbar }}
-                slotProps={{ toolbar: { setRows, setRowModesModel, searchQuery, setSearchQuery, availabilityFilter, setAvailabilityFilter, startDate, setStartDate, endDate, setEndDate, dateFilter, setDateFilter, handleExportCSV, handlePrintPDF } }}
+                slotProps={{ toolbar: { setRows, setRowModesModel, searchQuery, setSearchQuery, availabilityFilter, setAvailabilityFilter, startDate, setStartDate, endDate, setEndDate, dateFilter, setDateFilter, handleExportCSV, handlePrintPDF, currentUser, todayStr } }}
                 sx={{
                    border: 'none',
                    '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#f8fafc' }

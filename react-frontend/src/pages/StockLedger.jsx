@@ -238,17 +238,20 @@ export default function StockLedger() {
       
       const mapped = stockRes.data.map(r => ({
         ...r,
-        materialId: r.material?.id,
-        materialName: r.material?.name,
-        materialCode: r.material?.materialCode
+        materialId: r.material?.id || r.materialId,
+        materialName: r.material?.name || r.materialName,
+        materialCode: r.material?.materialCode || r.materialCode
       }));
       
       globalAllStockEntries = mapped;
 
-      // Include all stock entries (including initial stock) + master materials so All Data shows 100% complete records
-      const existingMatIds = new Set(mapped.map(r => r.materialId).filter(Boolean));
+      // Match master materials by materialCode so all store items appear in All Data
+      const existingMatCodes = new Set(
+        mapped.map(r => (r.materialCode ? String(r.materialCode).trim().toLowerCase() : null)).filter(Boolean)
+      );
+
       const masterOnlyRows = matRes.data
-        .filter(m => !existingMatIds.has(m.id))
+        .filter(m => m.materialCode && !existingMatCodes.has(String(m.materialCode).trim().toLowerCase()))
         .map(m => ({
            id: `mat-${m.id}`,
            materialId: m.id,
@@ -257,7 +260,7 @@ export default function StockLedger() {
            arrivalQuantity: 0,
            outgoingQuantity: 0,
            arrivalDate: m.createdAt ? String(m.createdAt).substring(0, 10) : todayStr,
-           broughtBy: 'Master Material',
+           broughtBy: 'Store Initial Stock',
            issuedBy: 'N/A'
         }));
 

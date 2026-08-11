@@ -78,6 +78,7 @@ const AppTheme = createTheme({
           },
         },
       },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         html: {

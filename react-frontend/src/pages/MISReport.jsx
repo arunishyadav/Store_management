@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, Card, CardContent, Button, CircularProgress, Tabs, Tab, TextField, Stack, Grid, Paper, Chip } from '@mui/material';
+import { Box, Typography, Card, CardContent, Button, CircularProgress, Tabs, Tab, TextField, Stack, Grid, Paper, Chip, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { DataGrid, GridToolbarContainer, GridToolbarExport, GridToolbarFilterButton } from '@mui/x-data-grid';
+import { Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
+import { exportToCSV, printPDF } from '../utils/exportUtils';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
@@ -20,6 +22,7 @@ const MISReport = () => {
   const [materials, setMaterials] = useState([]);
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [availabilityFilter, setAvailabilityFilter] = useState('ALL'); // 'ALL' | 'YES' | 'NO'
   const locationId = useAuthStore(state => state.selectedLocation?.id);
   
   const todayStr = new Date().toISOString().split('T')[0];
@@ -148,14 +151,58 @@ const MISReport = () => {
       );
   }, [materials, entries, startDate, endDate]);
 
+  // Filtered Report Data by Availability
+  const filteredReportData = useMemo(() => {
+    return reportData.filter(r => {
+      if (availabilityFilter === 'YES') return r.closingStock > 0;
+      if (availabilityFilter === 'NO') return r.closingStock <= 0;
+      return true;
+    });
+  }, [reportData, availabilityFilter]);
+
+  const handleExportCSV = () => {
+    const exportData = filteredReportData.map(r => ({
+      'Item Code': r.materialCode,
+      'Item Name': r.materialName,
+      'Category': r.category,
+      'Opening Stock': r.openingStock,
+      'Inward (+)': r.inward,
+      'Issued (-)': r.issued,
+      'Closing Stock (=)': r.closingStock,
+      'Status': r.closingStock > 0 ? 'YES' : 'NO'
+    }));
+    exportToCSV(exportData, `MIS_Report_${availabilityFilter}_Stock_${startDate}_to_${endDate}.csv`);
+  };
+
+  const handlePrintPDF = () => {
+    const printData = filteredReportData.map(r => ({
+      code: r.materialCode,
+      name: r.materialName,
+      category: r.category,
+      opening: r.openingStock,
+      inward: r.inward,
+      issued: r.issued,
+      closing: r.closingStock,
+      status: r.closingStock > 0 ? 'YES' : 'NO'
+    }));
+    printPDF(printData, `MIS Report (${startDate} to ${endDate} - Stock: ${availabilityFilter})`, [
+      { field: 'code', headerName: 'Item Code' },
+      { field: 'name', headerName: 'Item Name' },
+      { field: 'category', headerName: 'Category' },
+      { field: 'opening', headerName: 'Opening' },
+      { field: 'inward', headerName: 'Inward' },
+      { field: 'issued', headerName: 'Issued' },
+      { field: 'closing', headerName: 'Closing Stock' },
+      { field: 'status', headerName: 'Status' }
+    ]);
+  };
+
   // Data for Charts
   const chartData = useMemo(() => {
-      // Top 5 Issued Materials
-      const topIssued = [...reportData].sort((a, b) => b.issued - a.issued).slice(0, 5);
+      const topIssued = [...filteredReportData].sort((a, b) => b.issued - a.issued).slice(0, 5);
       
-      // Category Distribution of Closing Stock
       const categoryMap = {};
-      reportData.forEach(r => {
+      filteredReportData.forEach(r => {
           if (r.closingStock > 0) {
               categoryMap[r.category] = (categoryMap[r.category] || 0) + r.closingStock;
           }
@@ -163,7 +210,7 @@ const MISReport = () => {
       const categoryData = Object.keys(categoryMap).map(k => ({ name: k, value: categoryMap[k] }));
 
       return { topIssued, categoryData };
-  }, [reportData]);
+  }, [filteredReportData]);
 
   // Entry Book Filtered Data
   const filteredEntries = useMemo(() => {
@@ -220,7 +267,32 @@ const MISReport = () => {
         <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
           MIS Dashboard
         </Typography>
+
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
+           {/* Availability Filter */}
+           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+             <Typography variant="caption" fontWeight="bold">Stock:</Typography>
+             <ToggleButtonGroup
+               size="small"
+               value={availabilityFilter}
+               exclusive
+               onChange={(e, val) => val && setAvailabilityFilter(val)}
+               color="primary"
+             >
+               <ToggleButton value="ALL" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold' }}>ALL</ToggleButton>
+               <ToggleButton value="YES" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'success.main' }}>YES (In Stock)</ToggleButton>
+               <ToggleButton value="NO" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'error.main' }}>NO (Out of Stock)</ToggleButton>
+             </ToggleButtonGroup>
+           </Box>
+
+           {/* Export Buttons */}
+           <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV}>
+             Export CSV
+           </Button>
+           <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF}>
+             Print PDF
+           </Button>
+
            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
              <Button variant="outlined" size="small" onClick={() => setPresetDate(1)} sx={{ flexGrow: 1 }}>1 Mo</Button>
              <Button variant="outlined" size="small" onClick={() => setPresetDate(6)} sx={{ flexGrow: 1 }}>6 Mo</Button>
@@ -322,7 +394,7 @@ const MISReport = () => {
                        {/* Desktop DataGrid */}
                        <Box sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1, width: '100%', minHeight: 0 }}>
                           <DataGrid
-                            rows={reportData}
+                            rows={filteredReportData}
                             columns={reportColumns}
                             density="comfortable"
                             slots={{ toolbar: CustomToolbar }}
@@ -341,7 +413,7 @@ const MISReport = () => {
                           <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
                              Closing Stock Breakdown
                           </Typography>
-                          {reportData.map((row) => (
+                          {filteredReportData.map((row) => (
                              <Card key={row.id} sx={{ mb: 1.5, p: 1.5, borderRadius: 2, border: '1px solid #e2e8f0' }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                    <Typography variant="body2" fontWeight="bold" color="primary.main">

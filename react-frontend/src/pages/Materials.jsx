@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, Paper, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete, Card, CardContent, Grid, Divider } from '@mui/material';
+import { Box, Typography, Button, Paper, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete, Card, CardContent, Grid, Divider, ToggleButton, ToggleButtonGroup, InputAdornment } from '@mui/material';
 import { DataGrid, GridRowModes, GridToolbar, GridActionsCellItem } from '@mui/x-data-grid';
-import { Add as AddIcon, Edit as EditIcon, DeleteOutlined as DeleteIcon, Save as SaveIcon, Close as CancelIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, DeleteOutlined as DeleteIcon, Save as SaveIcon, Close as CancelIcon, Search as SearchIcon, Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-material';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
+import { exportToCSV, printPDF } from '../utils/exportUtils';
 
 const Materials = () => {
   const [rows, setRows] = useState([]);
   const [allUniqueMaterials, setAllUniqueMaterials] = useState([]);
   const [mobileSearch, setMobileSearch] = useState('');
+  const [availabilityFilter, setAvailabilityFilter] = useState('ALL'); // 'ALL' | 'YES' | 'NO'
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [rowModesModel, setRowModesModel] = useState({});
   const [loading, setLoading] = useState(false);
   const locationId = useAuthStore(state => state.selectedLocation?.id);
@@ -303,53 +307,189 @@ const Materials = () => {
     });
   }
 
-  const mobileFilteredRows = rows.filter(r => {
-    if (!mobileSearch) return true;
-    const q = mobileSearch.toLowerCase();
-    return (
-      (r.materialCode && r.materialCode.toLowerCase().includes(q)) ||
-      (r.name && r.name.toLowerCase().includes(q)) ||
-      (r.category && r.category.toLowerCase().includes(q))
-    );
+  const filteredRows = rows.filter(r => {
+    // 1. Stock Availability Filter (YES / NO / ALL)
+    let matchesAvailability = true;
+    const qty = parseFloat(r.nowQuantity || 0);
+    if (availabilityFilter === 'YES') {
+      matchesAvailability = qty > 0;
+    } else if (availabilityFilter === 'NO') {
+      matchesAvailability = qty <= 0;
+    }
+
+    // 2. Date Filter / Date Range
+    let matchesDate = true;
+    const entryDateStr = r.arrivalDate || '';
+    const entryDate = entryDateStr ? String(entryDateStr).substring(0, 10) : '';
+
+    if (startDate && endDate) {
+      matchesDate = entryDate >= startDate && entryDate <= endDate;
+    }
+
+    // 3. Search Query
+    let matchesSearch = true;
+    if (mobileSearch && mobileSearch.trim() !== '') {
+      const q = mobileSearch.trim().toLowerCase();
+      matchesSearch = (
+        (r.materialCode && String(r.materialCode).toLowerCase().includes(q)) ||
+        (r.name && String(r.name).toLowerCase().includes(q)) ||
+        (r.category && String(r.category).toLowerCase().includes(q)) ||
+        (r.broughtBy && String(r.broughtBy).toLowerCase().includes(q))
+      );
+    }
+
+    return matchesAvailability && matchesDate && matchesSearch;
   });
+
+  const handleExportCSV = () => {
+    const exportData = filteredRows.map(r => ({
+      'Item Code': r.materialCode || 'N/A',
+      'Item Name': r.name || 'N/A',
+      'Category': r.category || 'Hardware',
+      'Total Arrival Qty': r.arrivalQuantity || 0,
+      'Now Available Stock': r.nowQuantity || 0,
+      'Available Status': (r.nowQuantity > 0) ? 'YES' : 'NO',
+      'Arrival Date': r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A',
+      'Arrival Time': r.arrivalTime || '',
+      'Brought By': r.broughtBy || 'N/A'
+    }));
+    exportToCSV(exportData, `Materials_${availabilityFilter}_Stock_${new Date().toISOString().substring(0,10)}.csv`);
+  };
+
+  const handlePrintPDF = () => {
+    const printData = filteredRows.map(r => ({
+      code: r.materialCode || 'N/A',
+      name: r.name || 'N/A',
+      category: r.category || 'Hardware',
+      arrivalQty: r.arrivalQuantity || 0,
+      nowQty: r.nowQuantity || 0,
+      status: (r.nowQuantity > 0) ? 'YES' : 'NO',
+      date: r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A',
+      broughtBy: r.broughtBy || 'N/A'
+    }));
+    printPDF(printData, `Materials Stock Report (${availabilityFilter})`, [
+      { field: 'code', headerName: 'Item Code' },
+      { field: 'name', headerName: 'Material Name' },
+      { field: 'category', headerName: 'Category' },
+      { field: 'arrivalQty', headerName: 'Total Arrival' },
+      { field: 'nowQty', headerName: 'Now Stock' },
+      { field: 'status', headerName: 'Available' },
+      { field: 'date', headerName: 'Arrival Date' },
+      { field: 'broughtBy', headerName: 'Brought By' }
+    ]);
+  };
 
   return (
     <Box sx={{ height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 2, gap: 1.5 }}>
-        <Typography variant="h4" fontWeight="bold" sx={{ px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>Materials</Typography>
-         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', width: { xs: '100%', sm: 'auto' }, px: { xs: 1.5, sm: 0 } }}>
-           <Box display="flex" alignItems="center" gap={1} sx={{ flexGrow: 1 }}>
-              <Typography variant="body2" fontWeight="bold" whiteSpace="nowrap">Sheet Date:</Typography>
-              <input 
-                  type="date" 
-                  value={selectedDate} 
-                  onChange={(e) => setSelectedDate(e.target.value)} 
-                  style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', flexGrow: 1, maxWidth: '160px' }}
-              />
-              <Button 
-                variant={selectedDate ? "contained" : "outlined"} 
-                color={selectedDate ? "secondary" : "inherit"}
-                size="small" 
-                onClick={() => setSelectedDate('')}
-                sx={{ whiteSpace: 'nowrap' }}
+      {/* Header Bar */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1.5 }}>
+          <Typography variant="h4" fontWeight="bold" sx={{ px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>Materials</Typography>
+          
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', px: { xs: 1.5, sm: 0 } }}>
+            {/* Availability Filter Toggle */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="caption" fontWeight="bold">Stock:</Typography>
+              <ToggleButtonGroup
+                size="small"
+                value={availabilityFilter}
+                exclusive
+                onChange={(e, val) => val && setAvailabilityFilter(val)}
+                color="primary"
               >
-                All Data
+                <ToggleButton value="ALL" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold' }}>ALL</ToggleButton>
+                <ToggleButton value="YES" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'success.main' }}>YES (In Stock)</ToggleButton>
+                <ToggleButton value="NO" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'error.main' }}>NO (Out of Stock)</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+
+            {/* Export Buttons */}
+            <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV}>
+              Export CSV
+            </Button>
+            <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF}>
+              Print PDF
+            </Button>
+
+            {currentUser?.role !== 'USER' && (
+              <Button 
+                variant="contained" 
+                color="primary" 
+                startIcon={<AddIcon />} 
+                sx={{ whiteSpace: 'nowrap' }}
+                onClick={() => {
+                  setNewMat(prev => ({ ...prev, arrivalDate: selectedDate || todayStr }));
+                  setOpen(true);
+                }}
+              >
+                Add Material
               </Button>
-           </Box>
-           {currentUser?.role !== 'USER' && (
-             <Button 
-               variant="contained" 
-               color="primary" 
-               startIcon={<AddIcon />} 
-               sx={{ whiteSpace: 'nowrap', width: { xs: '100%', sm: 'auto' } }}
-               onClick={() => {
-                 setNewMat(prev => ({ ...prev, arrivalDate: selectedDate || todayStr }));
-                 setOpen(true);
-              }}
-            >
-               Add Material
-             </Button>
-           )}
+            )}
+          </Box>
+        </Box>
+
+        {/* Date Filter & Search Row */}
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', flexWrap: 'wrap', px: { xs: 1.5, sm: 0 } }}>
+          <TextField
+            size="small"
+            placeholder="Search code, name, category..."
+            value={mobileSearch}
+            onChange={(e) => setMobileSearch(e.target.value)}
+            sx={{ minWidth: '240px', backgroundColor: '#fff' }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" color="primary" />
+                </InputAdornment>
+              )
+            }}
+          />
+
+          <Box display="flex" alignItems="center" gap={1}>
+            <Typography variant="body2" fontWeight="bold" whiteSpace="nowrap">Sheet Date:</Typography>
+            <input 
+                type="date" 
+                value={selectedDate} 
+                onChange={(e) => {
+                  setSelectedDate(e.target.value);
+                  if (e.target.value) { setStartDate(''); setEndDate(''); }
+                }} 
+                style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', maxWidth: '150px' }}
+            />
+          </Box>
+
+          <Typography variant="caption" fontWeight="bold" color="text.secondary">OR Range:</Typography>
+          <Box display="flex" alignItems="center" gap={1}>
+            <input 
+                type="date" 
+                value={startDate} 
+                onChange={(e) => {
+                  setStartDate(e.target.value);
+                  if (e.target.value) setSelectedDate('');
+                }} 
+                style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', maxWidth: '140px' }}
+            />
+            <Typography variant="caption">to</Typography>
+            <input 
+                type="date" 
+                value={endDate} 
+                onChange={(e) => {
+                  setEndDate(e.target.value);
+                  if (e.target.value) setSelectedDate('');
+                }} 
+                style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', maxWidth: '140px' }}
+            />
+          </Box>
+
+          <Button 
+            variant={(!selectedDate && !startDate && !endDate) ? "contained" : "outlined"} 
+            color={(!selectedDate && !startDate && !endDate) ? "secondary" : "inherit"}
+            size="small" 
+            onClick={() => { setSelectedDate(''); setStartDate(''); setEndDate(''); }}
+            sx={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}
+          >
+            All Data
+          </Button>
         </Box>
       </Box>
 
@@ -361,7 +501,7 @@ const Materials = () => {
             {/* Desktop View (md+) */}
             <Box sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1, width: '100%', height: '100%', minHeight: 0 }}>
               <DataGrid
-                rows={rows}
+                rows={filteredRows}
                 columns={columns}
                 editMode="row"
                 density="comfortable"
@@ -389,23 +529,13 @@ const Materials = () => {
 
             {/* Mobile View (< md) */}
             <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-              <Box sx={{ p: 1.5, borderBottom: '1px solid #e2e8f0', backgroundColor: '#ffffff' }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search material code or name..."
-                  value={mobileSearch}
-                  onChange={(e) => setMobileSearch(e.target.value)}
-                />
-              </Box>
-
               <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 1.5, backgroundColor: '#f8fafc' }}>
-                {mobileFilteredRows.length === 0 ? (
+                {filteredRows.length === 0 ? (
                   <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
                     <Typography variant="body1">No materials found.</Typography>
                   </Box>
                 ) : (
-                  mobileFilteredRows.map((row) => (
+                  filteredRows.map((row) => (
                     <Card key={row.id} sx={{ mb: 1.5, borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0' }}>
                       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>

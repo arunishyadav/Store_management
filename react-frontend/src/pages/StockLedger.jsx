@@ -408,8 +408,8 @@ export default function StockLedger() {
       const mapped = stockRes.data.map(r => ({
         ...r,
         materialId: r.material?.id || r.materialId,
-        materialName: r.material?.name || r.materialName,
-        materialCode: r.material?.materialCode || r.materialCode
+        materialName: (r.materialName && String(r.materialName).trim()) ? r.materialName : (r.material?.name || ''),
+        materialCode: r.materialCode || r.material?.materialCode
       }));
       
       globalAllStockEntries = mapped;

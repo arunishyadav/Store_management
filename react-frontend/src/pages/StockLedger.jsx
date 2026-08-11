@@ -522,6 +522,38 @@ export default function StockLedger() {
     );
   }
 
+  // Mobile state
+  const [mobileSearch, setMobileSearch] = useState('');
+  const [mobileEditOpen, setMobileEditOpen] = useState(false);
+  const [mobileEditingRow, setMobileEditingRow] = useState(null);
+
+  const handleMobileAddClick = () => {
+    setMobileEditingRow({
+      ...initialRow,
+      id: uuidv4(),
+      arrivalDate: dateFilter || todayStr,
+      isNew: true
+    });
+    setMobileEditOpen(true);
+  };
+
+  const handleMobileEditClick = (row) => {
+    setMobileEditingRow({ ...row, isNew: false });
+    setMobileEditOpen(true);
+  };
+
+  const handleMobileSave = async () => {
+    if (!mobileEditingRow) return;
+    try {
+      await processRowUpdate(mobileEditingRow);
+      setMobileEditOpen(false);
+      setMobileEditingRow(null);
+      fetchData();
+    } catch (err) {
+      alert(err.message || "Failed to save record.");
+    }
+  };
+
   const filteredRows = dateFilter 
     ? rows.filter(r => {
          const outQty = parseFloat(r.outgoingQuantity || 0);
@@ -535,8 +567,19 @@ export default function StockLedger() {
     })
     : rows;
 
+  const mobileFilteredRows = filteredRows.filter(r => {
+    if (!mobileSearch) return true;
+    const q = mobileSearch.toLowerCase();
+    return (
+      (r.materialCode && r.materialCode.toLowerCase().includes(q)) ||
+      (r.materialName && r.materialName.toLowerCase().includes(q)) ||
+      (r.billNumber && r.billNumber.toLowerCase().includes(q)) ||
+      (r.issuedBy && r.issuedBy.toLowerCase().includes(q))
+    );
+  });
+
   return (
-    <Box sx={{ p: { xs: 0, sm: 1, md: 2 }, height: { xs: 'calc(100vh - 140px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', maxWidth: '100vw', boxSizing: 'border-box' }}>
+    <Box sx={{ p: { xs: 0, sm: 1, md: 2 }, height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', maxWidth: '100vw', boxSizing: 'border-box' }}>
       <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mt: { xs: 0.5, sm: 0 }, px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
         Entry Book
       </Typography>
@@ -544,34 +587,270 @@ export default function StockLedger() {
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (
-          <Box sx={{ flexGrow: 1, width: '100%', height: '100%', minHeight: 0 }}>
-            <DataGrid
-              rows={filteredRows}
-              columns={columns}
-              editMode="row"
-              rowModesModel={rowModesModel}
-              density="comfortable"
-              onRowModesModelChange={handleRowModesModelChange}
-              onRowEditStop={handleRowEditStop}
-              processRowUpdate={processRowUpdate}
-              onProcessRowUpdateError={(error) => alert(error.message || "Failed to save row.")}
-              initialState={{
-                pagination: {
-                  paginationModel: { page: 0, pageSize: 100 },
-                },
-              }}
-              pageSizeOptions={[25, 50, 100]}
-              slots={{ toolbar: EditToolbar }}
-              slotProps={{ toolbar: { setRows, setRowModesModel } }}
-              sx={{
-                 border: 'none',
-                 '& .MuiDataGrid-main': { overflow: 'visible' },
-                 '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#f8fafc' }
-              }}
-            />
-          </Box>
+          <>
+            {/* Desktop View (md+) */}
+            <Box sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1, width: '100%', height: '100%', minHeight: 0 }}>
+              <DataGrid
+                rows={filteredRows}
+                columns={columns}
+                editMode="row"
+                rowModesModel={rowModesModel}
+                density="comfortable"
+                onRowModesModelChange={handleRowModesModelChange}
+                onRowEditStop={handleRowEditStop}
+                processRowUpdate={processRowUpdate}
+                onProcessRowUpdateError={(error) => alert(error.message || "Failed to save row.")}
+                initialState={{
+                  pagination: {
+                    paginationModel: { page: 0, pageSize: 100 },
+                  },
+                }}
+                pageSizeOptions={[25, 50, 100]}
+                slots={{ toolbar: EditToolbar }}
+                slotProps={{ toolbar: { setRows, setRowModesModel } }}
+                sx={{
+                   border: 'none',
+                   '& .MuiDataGrid-main': { overflow: 'visible' },
+                   '& .MuiDataGrid-row:nth-of-type(even)': { backgroundColor: '#f8fafc' }
+                }}
+              />
+            </Box>
+
+            {/* Mobile View (< md) */}
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+              {/* Mobile Toolbar */}
+              <Box sx={{ p: 1.5, borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1.5, backgroundColor: '#ffffff' }}>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Search by code or name..."
+                    value={mobileSearch}
+                    onChange={(e) => setMobileSearch(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    style={{ padding: '7px 8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+                  />
+                </Box>
+                
+                {currentUser?.role !== 'USER' && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<AddIcon />}
+                    fullWidth
+                    onClick={handleMobileAddClick}
+                    sx={{ py: 1, fontWeight: 'bold' }}
+                  >
+                    + Add New Record
+                  </Button>
+                )}
+              </Box>
+
+              {/* Cards List */}
+              <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 1.5, backgroundColor: '#f8fafc' }}>
+                {mobileFilteredRows.length === 0 ? (
+                  <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
+                    <Typography variant="body1">No records found.</Typography>
+                  </Box>
+                ) : (
+                  mobileFilteredRows.map((row) => {
+                    const stockState = calculateStockState(row, globalAllStockEntries);
+                    return (
+                      <Card key={row.id} sx={{ mb: 1.5, borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0' }}>
+                        <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                            <Box sx={{ flexGrow: 1, mr: 1 }}>
+                              <Typography variant="subtitle1" fontWeight="bold" color="primary.main" sx={{ lineHeight: 1.2 }}>
+                                {row.materialCode ? `${row.materialCode} - ${row.materialName || ''}` : 'No Material'}
+                              </Typography>
+                              {row.billNumber && (
+                                <Typography variant="caption" color="text.secondary" display="block">
+                                  Bill: {row.billNumber}
+                                </Typography>
+                              )}
+                            </Box>
+                            <Chip
+                              label={stockState.available}
+                              color={stockState.available === 'YES' ? 'success' : 'error'}
+                              size="small"
+                              sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}
+                            />
+                          </Box>
+
+                          <Divider sx={{ my: 1 }} />
+
+                          <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary" display="block">Arrival Qty</Typography>
+                              <Typography variant="body2" fontWeight="bold">{row.arrivalQuantity || 0}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary" display="block">Outgoing Qty</Typography>
+                              <Typography variant="body2" fontWeight="bold" color={row.outgoingQuantity > 0 ? 'error.main' : 'text.primary'}>
+                                {row.outgoingQuantity || 0}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary" display="block">Arrival Date</Typography>
+                              <Typography variant="body2">{row.arrivalDate ? new Date(row.arrivalDate).toLocaleDateString() : 'N/A'}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary" display="block">Issue Date</Typography>
+                              <Typography variant="body2">{row.issueDate ? new Date(row.issueDate).toLocaleDateString() : 'N/A'}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary" display="block">Brought By</Typography>
+                              <Typography variant="body2">{row.broughtBy || 'N/A'}</Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary" display="block">Issued By</Typography>
+                              <Typography variant="body2">{row.issuedBy || 'N/A'}</Typography>
+                            </Grid>
+                          </Grid>
+
+                          <Box sx={{ mt: 1.5, p: 1, borderRadius: 2, backgroundColor: '#edf2f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="caption" fontWeight="bold" color="text.primary">Available Stock Balance:</Typography>
+                            <Typography variant="subtitle2" fontWeight="bold" color="success.dark">
+                              {stockState.runningBalance} Nos
+                            </Typography>
+                          </Box>
+
+                          {currentUser?.role !== 'USER' && (
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1.5 }}>
+                              <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => handleMobileEditClick(row)}>
+                                Edit
+                              </Button>
+                              {currentUser?.role === 'SUPER_ADMIN' && (
+                                <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={handleDeleteClick(row.id)}>
+                                  Delete
+                                </Button>
+                              )}
+                            </Box>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })
+                )}
+              </Box>
+            </Box>
+          </>
         )}
       </Paper>
+
+      {/* Mobile Edit Record Dialog */}
+      <Dialog open={mobileEditOpen} onClose={() => setMobileEditOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>
+          {mobileEditingRow?.isNew ? 'Add New Record' : 'Edit Entry Record'}
+        </DialogTitle>
+        <DialogContent dividers>
+          {mobileEditingRow && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
+              <Autocomplete
+                options={materials.map(m => ({ value: m.materialCode, label: `${m.materialCode} - ${m.name}`, name: m.name }))}
+                getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.label || ''}
+                value={materials.find(m => m.materialCode === mobileEditingRow.materialCode) ? `${mobileEditingRow.materialCode} - ${mobileEditingRow.materialName || ''}` : mobileEditingRow.materialCode || ''}
+                onChange={(e, val) => {
+                  if (typeof val === 'string') {
+                    setMobileEditingRow(prev => ({ ...prev, materialCode: val }));
+                  } else if (val && val.value) {
+                    setMobileEditingRow(prev => ({ ...prev, materialCode: val.value, materialName: val.name }));
+                  }
+                }}
+                renderInput={(params) => <TextField {...params} label="Select Material" fullWidth variant="outlined" size="small" />}
+              />
+              <TextField
+                label="Bill Number"
+                size="small"
+                fullWidth
+                value={mobileEditingRow.billNumber || ''}
+                onChange={e => setMobileEditingRow({ ...mobileEditingRow, billNumber: e.target.value })}
+              />
+              <Grid container spacing=1.5>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Arrival Quantity"
+                    type="number"
+                    size="small"
+                    fullWidth
+                    value={mobileEditingRow.arrivalQuantity || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, arrivalQuantity: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Outgoing Quantity"
+                    type="number"
+                    size="small"
+                    fullWidth
+                    value={mobileEditingRow.outgoingQuantity || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, outgoingQuantity: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+              <Grid container spacing=1.5>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Arrival Date"
+                    type="date"
+                    size="small"
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    value={mobileEditingRow.arrivalDate ? mobileEditingRow.arrivalDate.substring(0, 10) : ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, arrivalDate: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Issue Date"
+                    type="date"
+                    size="small"
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    value={mobileEditingRow.issueDate ? mobileEditingRow.issueDate.substring(0, 10) : ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, issueDate: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+              <Grid container spacing=1.5>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Lane Wala Name"
+                    size="small"
+                    fullWidth
+                    value={mobileEditingRow.broughtBy || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, broughtBy: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Issued By"
+                    size="small"
+                    fullWidth
+                    value={mobileEditingRow.issuedBy || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, issuedBy: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setMobileEditOpen(false)} color="inherit">Cancel</Button>
+          <Button onClick={handleMobileSave} variant="contained">Save Record</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

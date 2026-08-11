@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, Paper, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete } from '@mui/material';
+import { Box, Typography, Button, Paper, Chip, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete, Card, CardContent, Grid, Divider } from '@mui/material';
 import { DataGrid, GridRowModes, GridToolbar, GridActionsCellItem } from '@mui/x-data-grid';
 import { Add as AddIcon, Edit as EditIcon, DeleteOutlined as DeleteIcon, Save as SaveIcon, Close as CancelIcon } from '@mui/icons-material';
 import api from '../services/api';
@@ -8,6 +8,7 @@ import useAuthStore from '../store/authStore';
 const Materials = () => {
   const [rows, setRows] = useState([]);
   const [allUniqueMaterials, setAllUniqueMaterials] = useState([]);
+  const [mobileSearch, setMobileSearch] = useState('');
   const [rowModesModel, setRowModesModel] = useState({});
   const [loading, setLoading] = useState(false);
   const locationId = useAuthStore(state => state.selectedLocation?.id);
@@ -302,8 +303,18 @@ const Materials = () => {
     });
   }
 
+  const mobileFilteredRows = rows.filter(r => {
+    if (!mobileSearch) return true;
+    const q = mobileSearch.toLowerCase();
+    return (
+      (r.materialCode && r.materialCode.toLowerCase().includes(q)) ||
+      (r.name && r.name.toLowerCase().includes(q)) ||
+      (r.category && r.category.toLowerCase().includes(q))
+    );
+  });
+
   return (
-    <Box sx={{ height: { xs: 'calc(100vh - 140px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
+    <Box sx={{ height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 2, gap: 1.5 }}>
         <Typography variant="h4" fontWeight="bold" sx={{ px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>Materials</Typography>
          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', width: { xs: '100%', sm: 'auto' }, px: { xs: 1.5, sm: 0 } }}>
@@ -346,33 +357,116 @@ const Materials = () => {
         {loading ? (
            <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (
-          <Box sx={{ flexGrow: 1, width: '100%', height: '100%', minHeight: 0 }}>
-            <DataGrid
-              rows={rows}
-              columns={columns}
-              editMode="row"
-              density="comfortable"
-              rowModesModel={rowModesModel}
-            onRowModesModelChange={handleRowModesModelChange}
-            processRowUpdate={processRowUpdate}
-            onProcessRowUpdateError={(error) => alert(error.message || "Failed to update material.")}
-            slots={{ toolbar: GridToolbar }}
-            initialState={{
-              pagination: {
-                paginationModel: { page: 0, pageSize: 100 },
-              },
-            }}
-            pageSizeOptions={[25, 50, 100]}
-            disableRowSelectionOnClick
-            sx={{
-              border: 0,
-              '& .MuiDataGrid-columnHeaders': {
-                backgroundColor: '#f5f7fa',
-                borderBottom: '1px solid #e0e0e0',
-              },
-            }}
-          />
-          </Box>
+          <>
+            {/* Desktop View (md+) */}
+            <Box sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1, width: '100%', height: '100%', minHeight: 0 }}>
+              <DataGrid
+                rows={rows}
+                columns={columns}
+                editMode="row"
+                density="comfortable"
+                rowModesModel={rowModesModel}
+                onRowModesModelChange={handleRowModesModelChange}
+                processRowUpdate={processRowUpdate}
+                onProcessRowUpdateError={(error) => alert(error.message || "Failed to update material.")}
+                slots={{ toolbar: GridToolbar }}
+                initialState={{
+                  pagination: {
+                    paginationModel: { page: 0, pageSize: 100 },
+                  },
+                }}
+                pageSizeOptions={[25, 50, 100]}
+                disableRowSelectionOnClick
+                sx={{
+                  border: 0,
+                  '& .MuiDataGrid-columnHeaders': {
+                    backgroundColor: '#f5f7fa',
+                    borderBottom: '1px solid #e0e0e0',
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Mobile View (< md) */}
+            <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+              <Box sx={{ p: 1.5, borderBottom: '1px solid #e2e8f0', backgroundColor: '#ffffff' }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search material code or name..."
+                  value={mobileSearch}
+                  onChange={(e) => setMobileSearch(e.target.value)}
+                />
+              </Box>
+
+              <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 1.5, backgroundColor: '#f8fafc' }}>
+                {mobileFilteredRows.length === 0 ? (
+                  <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
+                    <Typography variant="body1">No materials found.</Typography>
+                  </Box>
+                ) : (
+                  mobileFilteredRows.map((row) => (
+                    <Card key={row.id} sx={{ mb: 1.5, borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0' }}>
+                      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                          <Box sx={{ flexGrow: 1, mr: 1 }}>
+                            <Typography variant="subtitle1" fontWeight="bold" color="primary.main" sx={{ lineHeight: 1.2 }}>
+                              {row.materialCode}
+                            </Typography>
+                            <Typography variant="body2" fontWeight="medium" color="text.primary">
+                              {row.name}
+                            </Typography>
+                          </Box>
+                          <Chip label={row.category || 'Hardware'} color="primary" variant="outlined" size="small" sx={{ fontWeight: 'bold' }} />
+                        </Box>
+
+                        <Divider sx={{ my: 1 }} />
+
+                        <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                          <Grid item xs={6}>
+                            <Typography variant="caption" color="text.secondary" display="block">Total Arrival</Typography>
+                            <Typography variant="body2" fontWeight="bold">{row.arrivalQuantity || 0}</Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="caption" color="text.secondary" display="block">Now Quantity (Balance)</Typography>
+                            <Typography variant="body2" fontWeight="bold" color={row.nowQuantity > 0 ? 'success.main' : 'error.main'}>
+                              {row.nowQuantity || 0}
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="caption" color="text.secondary" display="block">Arrival Date & Time</Typography>
+                            <Typography variant="body2">{row.arrivalDate || 'N/A'}</Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <Typography variant="caption" color="text.secondary" display="block">Lane Wala Name</Typography>
+                            <Typography variant="body2">{row.laneWalaName || 'N/A'}</Typography>
+                          </Grid>
+                        </Grid>
+
+                        <Box sx={{ mt: 1.5, p: 1, borderRadius: 2, backgroundColor: row.availableInStore === 'YES' ? '#e6fffa' : '#ffe4e6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="caption" fontWeight="bold" color="text.primary">Available In Store:</Typography>
+                          <Chip
+                            label={row.availableInStore}
+                            color={row.availableInStore === 'YES' ? 'success' : 'error'}
+                            size="small"
+                            sx={{ fontWeight: 'bold' }}
+                          />
+                        </Box>
+
+                        {currentUser?.role === 'SUPER_ADMIN' && (
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1.5 }}>
+                            <Button size="small" variant="outlined" color="error" startIcon={<DeleteIcon />} onClick={handleDeleteClick(row.id)}>
+                              Delete
+                            </Button>
+                          </Box>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </Box>
+            </Box>
+          </>
         )}
       </Paper>
 

@@ -317,46 +317,117 @@ const MISReport = () => {
                       </CardContent>
                    </Card>
                 </Grid>
-                <Grid item xs={12} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 400 }}>
-                   <Paper sx={{ width: '100%', mt: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} elevation={2}>
-                      <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
-                         <DataGrid
-                           rows={reportData}
-                           columns={reportColumns}
-                           density="comfortable"
-                           slots={{ toolbar: CustomToolbar }}
-                           initialState={{
-                              pagination: { paginationModel: { page: 0, pageSize: 25 } },
-                              sorting: { sortModel: [{ field: 'closingStock', sort: 'desc' }] }
-                           }}
-                           pageSizeOptions={[10, 25, 50, 100]}
-                           disableRowSelectionOnClick
-                           sx={{ border: 'none' }}
-                         />
-                      </Box>
-                   </Paper>
-                </Grid>
-             </Grid>
-          )}
+                 <Grid item xs={12} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 300 }}>
+                    <Paper sx={{ width: '100%', mt: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} elevation={2}>
+                       {/* Desktop DataGrid */}
+                       <Box sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1, width: '100%', minHeight: 0 }}>
+                          <DataGrid
+                            rows={reportData}
+                            columns={reportColumns}
+                            density="comfortable"
+                            slots={{ toolbar: CustomToolbar }}
+                            initialState={{
+                               pagination: { paginationModel: { page: 0, pageSize: 25 } },
+                               sorting: { sortModel: [{ field: 'closingStock', sort: 'desc' }] }
+                            }}
+                            pageSizeOptions={[10, 25, 50, 100]}
+                            disableRowSelectionOnClick
+                            sx={{ border: 'none' }}
+                          />
+                       </Box>
 
-          {tabValue === 1 && (
-             <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 400 }} elevation={2}>
-                <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
-                   <DataGrid
-                     rows={filteredEntries}
-                     columns={entryColumns}
-                     density="comfortable"
-                     slots={{ toolbar: CustomToolbar }}
-                     initialState={{
-                        pagination: { paginationModel: { page: 0, pageSize: 25 } },
-                     }}
-                     pageSizeOptions={[10, 25, 50, 100]}
-                     disableRowSelectionOnClick
-                     sx={{ border: 'none' }}
-                   />
-                </Box>
-             </Paper>
-          )}
+                       {/* Mobile Cards View (< md) */}
+                       <Box sx={{ display: { xs: 'block', md: 'none' }, p: 1.5, overflowY: 'auto', maxHeight: '500px' }}>
+                          <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
+                             Closing Stock Breakdown
+                          </Typography>
+                          {reportData.map((row) => (
+                             <Card key={row.id} sx={{ mb: 1.5, p: 1.5, borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                   <Typography variant="body2" fontWeight="bold" color="primary.main">
+                                      {row.materialCode} - {row.materialName}
+                                   </Typography>
+                                   <Chip label={row.category} size="small" variant="outlined" />
+                                </Box>
+                                <Grid container spacing={1} sx={{ fontSize: '0.8rem' }}>
+                                   <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary">Opening Stock:</Typography>
+                                      <Typography variant="body2">{row.openingStock}</Typography>
+                                   </Grid>
+                                   <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary">Inward (+):</Typography>
+                                      <Typography variant="body2" color="success.main">+{row.inward}</Typography>
+                                   </Grid>
+                                   <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary">Issued (-):</Typography>
+                                      <Typography variant="body2" color="error.main">-{row.issued}</Typography>
+                                   </Grid>
+                                   <Grid item xs={6}>
+                                      <Typography variant="caption" color="text.secondary">Closing Stock (=):</Typography>
+                                      <Typography variant="body2" fontWeight="bold" color={row.closingStock < 0 ? 'error.main' : 'success.main'}>
+                                         {row.closingStock}
+                                      </Typography>
+                                   </Grid>
+                                </Grid>
+                             </Card>
+                          ))}
+                       </Box>
+                    </Paper>
+                 </Grid>
+              </Grid>
+           )}
+
+           {tabValue === 1 && (
+              <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 300 }} elevation={2}>
+                 {/* Desktop DataGrid */}
+                 <Box sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1, width: '100%', minHeight: 0 }}>
+                    <DataGrid
+                      rows={filteredEntries}
+                      columns={entryColumns}
+                      density="comfortable"
+                      slots={{ toolbar: CustomToolbar }}
+                      initialState={{
+                         pagination: { paginationModel: { page: 0, pageSize: 25 } },
+                      }}
+                      pageSizeOptions={[10, 25, 50, 100]}
+                      disableRowSelectionOnClick
+                      sx={{ border: 'none' }}
+                    />
+                 </Box>
+
+                 {/* Mobile Cards View (< md) */}
+                 <Box sx={{ display: { xs: 'block', md: 'none' }, p: 1.5, overflowY: 'auto', maxHeight: '500px' }}>
+                    <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
+                       Transaction Log History
+                    </Typography>
+                    {filteredEntries.map((e) => (
+                       <Card key={e.id} sx={{ mb: 1.5, p: 1.5, borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                          <Typography variant="body2" fontWeight="bold" color="primary.main">
+                             {e.materialCode} - {e.materialName}
+                          </Typography>
+                          <Grid container spacing={1} sx={{ mt: 0.5, fontSize: '0.8rem' }}>
+                             <Grid item xs={6}>
+                                <Typography variant="caption" color="text.secondary">Arrival Qty:</Typography>
+                                <Typography variant="body2">{e.arrivalQuantity || 0}</Typography>
+                             </Grid>
+                             <Grid item xs={6}>
+                                <Typography variant="caption" color="text.secondary">Outgoing Qty:</Typography>
+                                <Typography variant="body2" color="error.main">{e.outgoingQuantity || 0}</Typography>
+                             </Grid>
+                             <Grid item xs={6}>
+                                <Typography variant="caption" color="text.secondary">Arrival Date:</Typography>
+                                <Typography variant="body2">{e.arrivalDate || 'N/A'}</Typography>
+                             </Grid>
+                             <Grid item xs={6}>
+                                <Typography variant="caption" color="text.secondary">Issued By:</Typography>
+                                <Typography variant="body2">{e.issuedBy || 'N/A'}</Typography>
+                             </Grid>
+                          </Grid>
+                       </Card>
+                    ))}
+                 </Box>
+              </Paper>
+           )}
         </Box>
       )}
     </Box>

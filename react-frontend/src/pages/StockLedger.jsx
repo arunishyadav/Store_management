@@ -571,6 +571,50 @@ export default function StockLedger() {
     setMobileEditOpen(true);
   };
 
+  const handleSelectMaterialInMobile = (selectedCode) => {
+    if (!selectedCode) return;
+    
+    const mat = materials.find(m => m.materialCode.toLowerCase() === selectedCode.toLowerCase());
+    const matName = mat ? mat.name : '';
+
+    let lastEntry = null;
+    globalAllStockEntries.forEach((row) => {
+      if (row.materialCode && row.materialCode.toLowerCase() === selectedCode.toLowerCase()) {
+        if (!lastEntry || new Date(row.arrivalDate) > new Date(lastEntry.arrivalDate)) {
+          lastEntry = row;
+        }
+      }
+    });
+
+    setMobileEditingRow(prev => {
+      const updated = {
+        ...prev,
+        materialCode: selectedCode,
+        materialName: matName || prev?.materialName || ''
+      };
+
+      if (lastEntry) {
+        if (lastEntry.billNumber) updated.billNumber = lastEntry.billNumber;
+        if (lastEntry.arrivalQuantity) updated.arrivalQuantity = lastEntry.arrivalQuantity;
+        if (lastEntry.arrivalDate) updated.arrivalDate = String(lastEntry.arrivalDate).substring(0, 10);
+        if (lastEntry.arrivalTime) updated.arrivalTime = lastEntry.arrivalTime;
+        if (lastEntry.broughtBy) updated.broughtBy = lastEntry.broughtBy;
+        if (lastEntry.storeInchargeName) updated.storeInchargeName = lastEntry.storeInchargeName;
+        if (lastEntry.productLength) updated.productLength = lastEntry.productLength;
+        if (lastEntry.innerDiameter) updated.innerDiameter = lastEntry.innerDiameter;
+        if (lastEntry.kg) updated.kg = lastEntry.kg;
+      }
+
+      const dummyRow = { id: prev?.id || uuidv4(), materialCode: selectedCode, isNew: true, outgoingQuantity: 0, arrivalDate: updated.arrivalDate || '' };
+      const stockState = calculateStockState(dummyRow, globalAllStockEntries);
+      if (stockState.runningBalance <= 0) {
+        alert(`Out of Stock! Material '${selectedCode}' is currently not available in the store (Balance: ${stockState.runningBalance}).`);
+      }
+
+      return updated;
+    });
+  };
+
   const handleMobileSave = async () => {
     if (!mobileEditingRow) return;
     try {
@@ -857,27 +901,24 @@ export default function StockLedger() {
                 )}
                 value={mobileEditingRow.materialCode ? `${mobileEditingRow.materialCode}${mobileEditingRow.materialName ? ` - ${mobileEditingRow.materialName}` : ''}` : ''}
                 onChange={(event, newValue) => {
+                  let selectedCode = '';
                   if (typeof newValue === 'string') {
-                    setMobileEditingRow(prev => ({ ...prev, materialCode: newValue }));
+                    selectedCode = newValue;
                   } else if (newValue && newValue.code) {
-                    setMobileEditingRow(prev => ({
-                      ...prev,
-                      materialCode: newValue.code,
-                      materialName: newValue.name
-                    }));
+                    selectedCode = newValue.code;
+                  }
+                  if (selectedCode) {
+                    handleSelectMaterialInMobile(selectedCode);
                   }
                 }}
                 onInputChange={(event, newInputValue) => {
+                  const trimmed = (newInputValue || '').trim();
                   const match = materials.find(m => 
-                    m.materialCode.toLowerCase() === (newInputValue || '').trim().toLowerCase() ||
-                    m.name.toLowerCase() === (newInputValue || '').trim().toLowerCase()
+                    m.materialCode.toLowerCase() === trimmed.toLowerCase() ||
+                    m.name.toLowerCase() === trimmed.toLowerCase()
                   );
                   if (match) {
-                    setMobileEditingRow(prev => ({
-                      ...prev,
-                      materialCode: match.materialCode,
-                      materialName: match.name
-                    }));
+                    handleSelectMaterialInMobile(match.materialCode);
                   } else {
                     setMobileEditingRow(prev => ({ ...prev, materialCode: newInputValue }));
                   }

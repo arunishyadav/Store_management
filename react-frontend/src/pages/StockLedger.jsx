@@ -29,84 +29,119 @@ function AutocompleteEditCell(props) {
   const { id, value, field, materials } = props;
   const apiRef = useGridApiContext();
   
+  const options = useMemo(() => {
+    const optionsMap = {};
+    
+    // 1. Build options from all arrival stock entries first
+    (globalAllStockEntries || []).forEach(entry => {
+      if (!entry.materialCode) return;
+      const code = String(entry.materialCode).trim();
+      const name = entry.materialName && String(entry.materialName).trim() ? String(entry.materialName).trim() : '';
+      const dateStr = entry.arrivalDate ? String(entry.arrivalDate).substring(0, 10) : '';
+      const arrQty = entry.arrivalQuantity || 0;
+
+      const key = `${code.toLowerCase()}___${name.toLowerCase()}___${dateStr}`;
+      
+      const dateDisplay = dateStr ? ` (${dateStr})` : '';
+      const qtyDisplay = arrQty ? ` [Arr Qty: ${arrQty}]` : '';
+      const nameDisplay = name ? ` - ${name}` : '';
+      const label = `${code}${nameDisplay}${dateDisplay}${qtyDisplay}`;
+
+      if (!optionsMap[key]) {
+        optionsMap[key] = {
+          value: code,
+          materialCode: code,
+          materialName: name,
+          label: label,
+          entry: entry
+        };
+      }
+    });
+
+    // 2. Add master materials if not already present
+    (materials || []).forEach(m => {
+      if (!m.materialCode) return;
+      const code = String(m.materialCode).trim();
+      const name = m.name && String(m.name).trim() ? String(m.name).trim() : '';
+      const key = `${code.toLowerCase()}___${name.toLowerCase()}___master`;
+      
+      const matchExists = Object.keys(optionsMap).some(k => k.startsWith(`${code.toLowerCase()}___`));
+      if (!matchExists && !optionsMap[key]) {
+        optionsMap[key] = {
+          value: code,
+          materialCode: code,
+          materialName: name,
+          label: `${code}${name ? ' - ' + name : ''}`,
+          entry: null
+        };
+      }
+    });
+
+    return Object.values(optionsMap);
+  }, [materials]);
+
   const handleChange = (event, newValue) => {
-    const selectedCode = newValue ? newValue.value : '';
+    if (!newValue) {
+      apiRef.current.setEditCellValue({ id, field, value: '' });
+      return;
+    }
+
+    const selectedCode = typeof newValue === 'string' ? newValue : newValue.materialCode;
+    const selectedName = typeof newValue === 'object' && newValue.materialName ? newValue.materialName : '';
+    const targetEntry = typeof newValue === 'object' ? newValue.entry : null;
+
     apiRef.current.setEditCellValue({ id, field, value: selectedCode });
     
-    if (selectedCode) {
-       // Find the most recent entry for this material code from ALL entries, including hidden ones
-       const allBackendRows = globalAllStockEntries;
-       
-       let lastEntry = null;
-       allBackendRows.forEach((row) => {
-          if (row.materialCode === selectedCode && row.id !== id) {
-             if (!lastEntry || new Date(row.arrivalDate) > new Date(lastEntry.arrivalDate)) {
-                lastEntry = row;
-             }
+    let updateObj = { id, materialCode: selectedCode };
+    if (selectedName) {
+      apiRef.current.setEditCellValue({ id, field: 'materialName', value: selectedName });
+      updateObj.materialName = selectedName;
+    }
+
+    if (targetEntry) {
+       const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'storeInchargeName', 'productLength', 'innerDiameter', 'kg'];
+       fieldsToCopy.forEach(f => {
+          if (targetEntry[f] !== undefined && targetEntry[f] !== null) {
+              let valToSet = targetEntry[f];
+              if (f === 'arrivalDate' && typeof valToSet === 'string') {
+                  const parts = valToSet.split('-');
+                  if (parts.length === 3) {
+                      valToSet = new Date(parts[0], parts[1] - 1, parts[2]);
+                  } else {
+                      valToSet = new Date(valToSet);
+                  }
+              }
+              apiRef.current.setEditCellValue({ id, field: f, value: valToSet });
+              updateObj[f] = valToSet;
           }
        });
-       
-       let updateObj = { id, materialCode: selectedCode };
-       
-       const mat = materials.find(m => m.materialCode === selectedCode);
-       if (mat) {
+    } else {
+       const mat = materials.find(m => m.materialCode.toLowerCase() === selectedCode.toLowerCase());
+       if (mat && !selectedName) {
            apiRef.current.setEditCellValue({ id, field: 'materialName', value: mat.name });
            updateObj.materialName = mat.name;
        }
+    }
+    
+    apiRef.current.updateRows([updateObj]);
 
-       if (lastEntry) {
-          // Auto-fill other fields by setting their edit cell values
-          const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'productLength', 'innerDiameter', 'kg'];
-          fieldsToCopy.forEach(f => {
-             if (lastEntry[f] !== undefined && lastEntry[f] !== null) {
-                 let valToSet = lastEntry[f];
-                 if (f === 'arrivalDate' && typeof valToSet === 'string') {
-                     // preserve local timezone
-                     const parts = valToSet.split('-');
-                     if (parts.length === 3) {
-                         valToSet = new Date(parts[0], parts[1] - 1, parts[2]);
-                     } else {
-                         valToSet = new Date(valToSet);
-                     }
-                 }
-                 apiRef.current.setEditCellValue({ id, field: f, value: valToSet });
-                 updateObj[f] = valToSet;
-             }
-          });
-       }
-       // IMMEDIATELY update the row data so Name, Total Avl Q, and YES/NO calculate instantly!
-       apiRef.current.updateRows([updateObj]);
-
-       // Calculate current stock using the state BEFORE this new row is fully processed (i.e., we just want to know if balance is <= 0).
-       const dummyRow = { id, materialCode: selectedCode, isNew: true, outgoingQuantity: 0, arrivalDate: updateObj.arrivalDate || '' };
-       const stockState = calculateStockState(dummyRow, globalAllStockEntries);
-       if (stockState.runningBalance <= 0) {
-           alert(`Out of Stock! Material '${selectedCode}' is currently not available in the store (Balance: ${stockState.runningBalance}).`);
-       }
+    const dummyRow = { id, materialCode: selectedCode, isNew: true, outgoingQuantity: 0, arrivalDate: updateObj.arrivalDate || '' };
+    const stockState = calculateStockState(dummyRow, globalAllStockEntries);
+    if (stockState.runningBalance <= 0) {
+        alert(`Out of Stock! Material '${selectedCode}' is currently not available in the store (Balance: ${stockState.runningBalance}).`);
     }
   };
 
-  const uniqueOptionsMap = {};
-  materials.forEach(m => {
-     if (m.materialCode && !uniqueOptionsMap[m.materialCode.trim().toLowerCase()]) {
-        uniqueOptionsMap[m.materialCode.trim().toLowerCase()] = {
-           value: m.materialCode,
-           label: `${m.materialCode} - ${m.name}`
-        };
-     }
-  });
-  const options = Object.values(uniqueOptionsMap);
-
-  const selectedOption = options.find((opt) => opt.value === value) || null;
+  const selectedOption = options.find((opt) => opt.value === value || opt.label.startsWith(value)) || null;
 
   return (
     <Autocomplete
       options={options}
-      getOptionLabel={(option) => option.label || ''}
+      getOptionLabel={(option) => typeof option === 'string' ? option : option.label || ''}
       value={selectedOption}
       onChange={handleChange}
-      isOptionEqualToValue={(option, value) => option.value === value.value}
-      onKeyDown={(e) => e.stopPropagation()} // FIX: Stop DataGrid from intercepting typing!
+      isOptionEqualToValue={(option, val) => option.value === val.value || option.label === val.label}
+      onKeyDown={(e) => e.stopPropagation()}
       renderInput={(params) => (
         <TextField 
            {...params} 
@@ -1143,32 +1178,80 @@ export default function StockLedger() {
               <Autocomplete
                 freeSolo
                 options={(() => {
-                  const uniqueMobileMap = {};
-                  materials.forEach(m => {
-                    if (m.materialCode && !uniqueMobileMap[m.materialCode.trim().toLowerCase()]) {
-                      uniqueMobileMap[m.materialCode.trim().toLowerCase()] = { code: m.materialCode, name: m.name, category: m.category, id: m.id };
+                  const optionsMap = {};
+                  (globalAllStockEntries || []).forEach(entry => {
+                    if (!entry.materialCode) return;
+                    const code = String(entry.materialCode).trim();
+                    const name = entry.materialName && String(entry.materialName).trim() ? String(entry.materialName).trim() : '';
+                    const dateStr = entry.arrivalDate ? String(entry.arrivalDate).substring(0, 10) : '';
+                    const arrQty = entry.arrivalQuantity || 0;
+
+                    const key = `${code.toLowerCase()}___${name.toLowerCase()}___${dateStr}`;
+                    const dateDisplay = dateStr ? ` (${dateStr})` : '';
+                    const qtyDisplay = arrQty ? ` [Arr: ${arrQty}]` : '';
+                    const nameDisplay = name ? ` - ${name}` : '';
+                    const label = `${code}${nameDisplay}${dateDisplay}${qtyDisplay}`;
+
+                    if (!optionsMap[key]) {
+                      optionsMap[key] = { code, name, label, entry };
                     }
                   });
-                  return Object.values(uniqueMobileMap);
+
+                  (materials || []).forEach(m => {
+                    if (!m.materialCode) return;
+                    const code = String(m.materialCode).trim();
+                    const name = m.name && String(m.name).trim() ? String(m.name).trim() : '';
+                    const key = `${code.toLowerCase()}___${name.toLowerCase()}___master`;
+                    const matchExists = Object.keys(optionsMap).some(k => k.startsWith(`${code.toLowerCase()}___`));
+                    if (!matchExists && !optionsMap[key]) {
+                      optionsMap[key] = { code, name, label: `${code}${name ? ' - ' + name : ''}`, entry: null };
+                    }
+                  });
+
+                  return Object.values(optionsMap);
                 })()}
-                getOptionLabel={(option) => typeof option === 'string' ? option : option.code ? `${option.code} - ${option.name}` : ''}
+                getOptionLabel={(option) => typeof option === 'string' ? option : option.label || ''}
                 renderOption={(props, option) => (
-                  <Box component="li" {...props} key={option.id}>
+                  <Box component="li" {...props} key={option.label}>
                     <Typography variant="body2">
-                      <strong>{option.code}</strong> - {option.name} ({option.category})
+                      <strong>{option.label}</strong>
                     </Typography>
                   </Box>
                 )}
                 value={mobileEditingRow.materialCode ? `${mobileEditingRow.materialCode}${mobileEditingRow.materialName ? ` - ${mobileEditingRow.materialName}` : ''}` : ''}
                 onChange={(event, newValue) => {
                   let selectedCode = '';
+                  let selectedName = '';
+                  let targetEntry = null;
+
                   if (typeof newValue === 'string') {
                     selectedCode = newValue;
                   } else if (newValue && newValue.code) {
                     selectedCode = newValue.code;
+                    selectedName = newValue.name;
+                    targetEntry = newValue.entry;
                   }
+
                   if (selectedCode) {
-                    handleSelectMaterialInMobile(selectedCode);
+                    setMobileEditingRow(prev => {
+                      const updated = {
+                        ...prev,
+                        materialCode: selectedCode,
+                        materialName: selectedName || prev?.materialName || ''
+                      };
+
+                      if (targetEntry) {
+                        updated.arrivalQuantity = targetEntry.arrivalQuantity || prev?.arrivalQuantity || '';
+                        updated.arrivalDate = targetEntry.arrivalDate || prev?.arrivalDate || (dateFilter || todayStr);
+                        updated.arrivalTime = targetEntry.arrivalTime || prev?.arrivalTime || '';
+                        updated.broughtBy = targetEntry.broughtBy || prev?.broughtBy || '';
+                        updated.storeInchargeName = targetEntry.storeInchargeName || prev?.storeInchargeName || '';
+                        updated.productLength = targetEntry.productLength || prev?.productLength || '';
+                        updated.innerDiameter = targetEntry.innerDiameter || prev?.innerDiameter || '';
+                        updated.kg = targetEntry.kg || prev?.kg || '';
+                      }
+                      return updated;
+                    });
                   }
                 }}
                 onInputChange={(event, newInputValue) => {

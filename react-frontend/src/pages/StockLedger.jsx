@@ -480,7 +480,7 @@ export default function StockLedger() {
   }
 
   function EditToolbar(props) {
-    const { setRows, setRowModesModel } = props;
+    const { setRows, setRowModesModel, searchQuery, setSearchQuery } = props;
     const handleClick = () => {
       const id = uuidv4();
       const newArrivalDate = dateFilter || todayStr;
@@ -506,7 +506,28 @@ export default function StockLedger() {
                 Add record
               </Button>
             ) : <Box />}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+
+            <TextField
+              size="small"
+              placeholder="Search by Code, Name, Issued By, Bill No, Incharge, Brought By..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{ minWidth: { xs: '100%', sm: '380px' }, backgroundColor: '#ffffff' }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" color="primary" />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery ? (
+                  <InputAdornment position="end">
+                    <Button size="small" sx={{ minWidth: 0, p: 0.2 }} onClick={() => setSearchQuery('')}>✕</Button>
+                  </InputAdornment>
+                ) : null
+              }}
+            />
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'nowrap' }}>
                 <Typography variant="body2" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Sheet Date:</Typography>
                 <input 
                     type="date" 
@@ -514,7 +535,15 @@ export default function StockLedger() {
                     onChange={(e) => setDateFilter(e.target.value)} 
                     style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', flexGrow: 1, maxWidth: '160px' }}
                 />
-                {dateFilter && <Button size="small" color="secondary" onClick={() => setDateFilter('')}>Clear</Button>}
+                <Button 
+                  variant={dateFilter ? "contained" : "outlined"} 
+                  color={dateFilter ? "secondary" : "inherit"}
+                  size="small" 
+                  onClick={() => setDateFilter('')}
+                  sx={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}
+                >
+                  All Data
+                </Button>
             </Box>
         </Box>
         <GridToolbar />
@@ -522,8 +551,8 @@ export default function StockLedger() {
     );
   }
 
-  // Mobile state
-  const [mobileSearch, setMobileSearch] = useState('');
+  // Smart Search & Mobile state
+  const [searchQuery, setSearchQuery] = useState('');
   const [mobileEditOpen, setMobileEditOpen] = useState(false);
   const [mobileEditingRow, setMobileEditingRow] = useState(null);
 
@@ -554,28 +583,54 @@ export default function StockLedger() {
     }
   };
 
-  const filteredRows = dateFilter 
-    ? rows.filter(r => {
-         const outQty = parseFloat(r.outgoingQuantity || 0);
-         if (outQty > 0 && r.issueDate) {
-             return r.issueDate.startsWith(dateFilter);
-         }
-         if (r.arrivalDate) {
-             return r.arrivalDate.startsWith(dateFilter);
-         }
-         return false;
-    })
-    : rows;
+  const filteredRows = rows.filter(r => {
+    let matchesDate = true;
+    if (dateFilter) {
+      const outQty = parseFloat(r.outgoingQuantity || 0);
+      if (outQty > 0 && r.issueDate) {
+        matchesDate = r.issueDate.startsWith(dateFilter);
+      } else if (r.arrivalDate) {
+        matchesDate = r.arrivalDate.startsWith(dateFilter);
+      } else {
+        matchesDate = false;
+      }
+    }
 
-  const mobileFilteredRows = filteredRows.filter(r => {
-    if (!mobileSearch) return true;
-    const q = mobileSearch.toLowerCase();
-    return (
-      (r.materialCode && r.materialCode.toLowerCase().includes(q)) ||
-      (r.materialName && r.materialName.toLowerCase().includes(q)) ||
-      (r.billNumber && r.billNumber.toLowerCase().includes(q)) ||
-      (r.issuedBy && r.issuedBy.toLowerCase().includes(q))
-    );
+    let matchesSearch = true;
+    if (searchQuery && searchQuery.trim() !== '') {
+      const q = searchQuery.trim().toLowerCase();
+      const code = String(r.materialCode || '').toLowerCase();
+      const name = String(r.materialName || '').toLowerCase();
+      const bill = String(r.billNumber || '').toLowerCase();
+      const issued = String(r.issuedBy || '').toLowerCase();
+      const incharge = String(r.storeInchargeName || '').toLowerCase();
+      const brought = String(r.broughtBy || '').toLowerCase();
+      const arrQty = String(r.arrivalQuantity || '');
+      const outQty = String(r.outgoingQuantity || '');
+      const arrDate = String(r.arrivalDate || '');
+      const issDate = String(r.issueDate || '');
+      const length = String(r.productLength || '').toLowerCase();
+      const dia = String(r.innerDiameter || '').toLowerCase();
+      const kgStr = String(r.kg || '').toLowerCase();
+
+      matchesSearch = (
+        code.includes(q) ||
+        name.includes(q) ||
+        bill.includes(q) ||
+        issued.includes(q) ||
+        incharge.includes(q) ||
+        brought.includes(q) ||
+        arrQty.includes(q) ||
+        outQty.includes(q) ||
+        arrDate.includes(q) ||
+        issDate.includes(q) ||
+        length.includes(q) ||
+        dia.includes(q) ||
+        kgStr.includes(q)
+      );
+    }
+
+    return matchesDate && matchesSearch;
   });
 
   return (
@@ -607,7 +662,7 @@ export default function StockLedger() {
                 }}
                 pageSizeOptions={[25, 50, 100]}
                 slots={{ toolbar: EditToolbar }}
-                slotProps={{ toolbar: { setRows, setRowModesModel } }}
+                slotProps={{ toolbar: { setRows, setRowModesModel, searchQuery, setSearchQuery } }}
                 sx={{
                    border: 'none',
                    '& .MuiDataGrid-main': { overflow: 'visible' },
@@ -620,27 +675,45 @@ export default function StockLedger() {
             <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
               {/* Mobile Toolbar */}
               <Box sx={{ p: 1.5, borderBottom: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 1.5, backgroundColor: '#ffffff' }}>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Search by code or name..."
-                    value={mobileSearch}
-                    onChange={(e) => setMobileSearch(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon fontSize="small" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <input
-                    type="date"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    style={{ padding: '7px 8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.85rem' }}
-                  />
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="Search by Code, Name, Issued By, Bill No..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" color="primary" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchQuery ? (
+                      <InputAdornment position="end">
+                        <Button size="small" sx={{ minWidth: 0, p: 0.2 }} onClick={() => setSearchQuery('')}>✕</Button>
+                      </InputAdornment>
+                    ) : null
+                  }}
+                />
+                
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexGrow: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Date:</Typography>
+                    <input
+                      type="date"
+                      value={dateFilter}
+                      onChange={(e) => setDateFilter(e.target.value)}
+                      style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.85rem', width: '100%' }}
+                    />
+                  </Box>
+                  <Button 
+                    variant={dateFilter ? "contained" : "outlined"} 
+                    color={dateFilter ? "secondary" : "inherit"}
+                    size="small" 
+                    onClick={() => setDateFilter('')}
+                    sx={{ whiteSpace: 'nowrap', fontWeight: 'bold', px: 1.5 }}
+                  >
+                    All Data
+                  </Button>
                 </Box>
                 
                 {currentUser?.role !== 'USER' && (
@@ -659,12 +732,12 @@ export default function StockLedger() {
 
               {/* Cards List */}
               <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 1.5, backgroundColor: '#f8fafc' }}>
-                {mobileFilteredRows.length === 0 ? (
+                {filteredRows.length === 0 ? (
                   <Box sx={{ py: 6, textAlign: 'center', color: 'text.secondary' }}>
-                    <Typography variant="body1">No records found.</Typography>
+                    <Typography variant="body1">No records found matching search / date.</Typography>
                   </Box>
                 ) : (
-                  mobileFilteredRows.map((row) => {
+                  filteredRows.map((row) => {
                     const stockState = calculateStockState(row, globalAllStockEntries);
                     return (
                       <Card key={row.id} sx={{ mb: 1.5, borderRadius: 3, boxShadow: '0 2px 10px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0' }}>

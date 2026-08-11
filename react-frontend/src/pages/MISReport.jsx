@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Typography, Card, CardContent, Button, CircularProgress, Tabs, Tab, TextField, Stack, Grid, Paper, Chip, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Box, Typography, Card, CardContent, Button, CircularProgress, Tabs, Tab, TextField, Stack, Grid, Paper, Chip, ToggleButton, ToggleButtonGroup, InputAdornment } from '@mui/material';
 import { DataGrid, GridToolbarContainer, GridToolbarExport, GridToolbarFilterButton } from '@mui/x-data-grid';
-import { Download as DownloadIcon, Print as PrintIcon } from '@mui/icons-material';
+import { Download as DownloadIcon, Print as PrintIcon, Search as SearchIcon } from '@mui/icons-material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ChartTooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
@@ -23,6 +23,8 @@ const MISReport = () => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [availabilityFilter, setAvailabilityFilter] = useState('ALL'); // 'ALL' | 'YES' | 'NO'
+  const [mobileSearch, setMobileSearch] = useState('');
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const locationId = useAuthStore(state => state.selectedLocation?.id);
   
   const todayStr = new Date().toISOString().split('T')[0];
@@ -151,14 +153,25 @@ const MISReport = () => {
       );
   }, [materials, entries, startDate, endDate]);
 
-  // Filtered Report Data by Availability
+  // Filtered Report Data by Availability & Mobile Search
   const filteredReportData = useMemo(() => {
     return reportData.filter(r => {
-      if (availabilityFilter === 'YES') return r.closingStock > 0;
-      if (availabilityFilter === 'NO') return r.closingStock <= 0;
-      return true;
+      let matchesStock = true;
+      if (availabilityFilter === 'YES') matchesStock = r.closingStock > 0;
+      if (availabilityFilter === 'NO') matchesStock = r.closingStock <= 0;
+
+      let matchesSearch = true;
+      if (mobileSearch && mobileSearch.trim() !== '') {
+        const q = mobileSearch.trim().toLowerCase();
+        const code = String(r.materialCode || '').toLowerCase();
+        const name = String(r.materialName || '').toLowerCase();
+        const cat = String(r.category || '').toLowerCase();
+        matchesSearch = code.includes(q) || name.includes(q) || cat.includes(q);
+      }
+
+      return matchesStock && matchesSearch;
     });
-  }, [reportData, availabilityFilter]);
+  }, [reportData, availabilityFilter, mobileSearch]);
 
   const handleExportCSV = () => {
     const exportData = filteredReportData.map(r => ({
@@ -212,7 +225,7 @@ const MISReport = () => {
       return { topIssued, categoryData };
   }, [filteredReportData]);
 
-  // Entry Book Filtered Data
+  // Entry Book Filtered Data (Transaction Log History)
   const filteredEntries = useMemo(() => {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -224,14 +237,25 @@ const MISReport = () => {
           
           const arrInRange = arrDate && arrDate >= start && arrDate <= end;
           const issInRange = issDate && issDate >= start && issDate <= end;
-          
-          return arrInRange || issInRange;
+          const matchesDate = arrInRange || issInRange;
+
+          let matchesSearch = true;
+          if (mobileSearch && mobileSearch.trim() !== '') {
+            const q = mobileSearch.trim().toLowerCase();
+            const code = String(e.material?.materialCode || e.materialCode || '').toLowerCase();
+            const name = String(e.material?.name || e.materialName || '').toLowerCase();
+            const issued = String(e.issuedBy || '').toLowerCase();
+            const brought = String(e.broughtBy || '').toLowerCase();
+            matchesSearch = code.includes(q) || name.includes(q) || issued.includes(q) || brought.includes(q);
+          }
+
+          return matchesDate && matchesSearch;
       }).map(r => ({
           ...r,
-          materialName: r.material?.name,
-          materialCode: r.material?.materialCode
+          materialName: r.material?.name || r.materialName,
+          materialCode: r.material?.materialCode || r.materialCode
       }));
-  }, [entries, startDate, endDate]);
+  }, [entries, startDate, endDate, mobileSearch]);
 
 
   const reportColumns = [
@@ -262,64 +286,163 @@ const MISReport = () => {
   ];
 
   return (
-    <Box sx={{ height: { xs: 'calc(100vh - 140px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 2, gap: 1.5, px: { xs: 1.5, sm: 0 } }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
-          MIS Dashboard
-        </Typography>
+    <Box sx={{ height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
+      {/* Header Bar */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: { xs: 1, md: 2 } }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1.5 }}>
+          <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.4rem', sm: '2.125rem' }, px: { xs: 1.5, sm: 0 } }}>
+            MIS Dashboard
+          </Typography>
 
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
-           {/* Availability Filter */}
-           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-             <Typography variant="caption" fontWeight="bold">Stock:</Typography>
-             <ToggleButtonGroup
-               size="small"
-               value={availabilityFilter}
-               exclusive
-               onChange={(e, val) => val && setAvailabilityFilter(val)}
-               color="primary"
-             >
-               <ToggleButton value="ALL" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold' }}>ALL</ToggleButton>
-               <ToggleButton value="YES" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'success.main' }}>YES (In Stock)</ToggleButton>
-               <ToggleButton value="NO" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'error.main' }}>NO (Out of Stock)</ToggleButton>
-             </ToggleButtonGroup>
-           </Box>
+          {/* Desktop Toolbar */}
+          <Box sx={{ display: { xs: 'none', md: 'flex' }, flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
+             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+               <Typography variant="caption" fontWeight="bold">Stock:</Typography>
+               <ToggleButtonGroup
+                 size="small"
+                 value={availabilityFilter}
+                 exclusive
+                 onChange={(e, val) => val && setAvailabilityFilter(val)}
+                 color="primary"
+               >
+                 <ToggleButton value="ALL" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold' }}>ALL</ToggleButton>
+                 <ToggleButton value="YES" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'success.main' }}>YES (In Stock)</ToggleButton>
+                 <ToggleButton value="NO" sx={{ px: 1.5, py: 0.5, fontWeight: 'bold', color: 'error.main' }}>NO (Out of Stock)</ToggleButton>
+               </ToggleButtonGroup>
+             </Box>
 
-           {/* Export Buttons */}
-           <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV}>
-             Export CSV
-           </Button>
-           <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF}>
-             Print PDF
-           </Button>
+             <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV}>
+               Export CSV
+             </Button>
+             <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF}>
+               Print PDF
+             </Button>
 
-           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
-             <Button variant="outlined" size="small" onClick={() => setPresetDate(1)} sx={{ flexGrow: 1 }}>1 Mo</Button>
-             <Button variant="outlined" size="small" onClick={() => setPresetDate(6)} sx={{ flexGrow: 1 }}>6 Mo</Button>
-             <Button variant="outlined" size="small" onClick={() => setPresetDate(12)} sx={{ flexGrow: 1 }}>1 Yr</Button>
-           </Stack>
-           
-           <Stack direction="row" spacing={1} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' } }}>
-             <TextField 
-               label="Start Date" 
-               type="date" 
-               value={startDate} 
-               onChange={e => setStartDate(e.target.value)} 
-               size="small" 
-               InputLabelProps={{ shrink: true }} 
-               sx={{ flexGrow: 1, minWidth: 120 }}
-             />
-             <Typography variant="body2">to</Typography>
-             <TextField 
-               label="End Date" 
-               type="date" 
-               value={endDate} 
-               onChange={e => setEndDate(e.target.value)} 
-               size="small" 
-               InputLabelProps={{ shrink: true }} 
-               sx={{ flexGrow: 1, minWidth: 120 }}
-             />
-           </Stack>
+             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+               <Button variant="outlined" size="small" onClick={() => setPresetDate(1)}>1 Mo</Button>
+               <Button variant="outlined" size="small" onClick={() => setPresetDate(6)}>6 Mo</Button>
+               <Button variant="outlined" size="small" onClick={() => setPresetDate(12)}>1 Yr</Button>
+             </Stack>
+             
+             <Stack direction="row" spacing={1} alignItems="center">
+               <TextField 
+                 label="Start Date" 
+                 type="date" 
+                 value={startDate} 
+                 onChange={e => setStartDate(e.target.value)} 
+                 size="small" 
+                 InputLabelProps={{ shrink: true }} 
+                 sx={{ minWidth: 120 }}
+               />
+               <Typography variant="body2">to</Typography>
+               <TextField 
+                 label="End Date" 
+                 type="date" 
+                 value={endDate} 
+                 onChange={e => setEndDate(e.target.value)} 
+                 size="small" 
+                 InputLabelProps={{ shrink: true }} 
+                 sx={{ minWidth: 120 }}
+               />
+             </Stack>
+          </Box>
+        </Box>
+
+        {/* STICKY MOBILE TOOLBAR (< md) */}
+        <Box sx={{ 
+          display: { xs: 'flex', md: 'none' }, 
+          flexDirection: 'column', 
+          gap: 1, 
+          p: 1.2, 
+          backgroundColor: '#ffffff', 
+          borderBottom: '1px solid #e2e8f0',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+        }}>
+          {/* Row 1: Search Input + Settings Toggle */}
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search code, name, category, issued by..."
+              value={mobileSearch}
+              onChange={(e) => setMobileSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" color="primary" />
+                  </InputAdornment>
+                ),
+                endAdornment: mobileSearch ? (
+                  <InputAdornment position="end">
+                    <Button size="small" sx={{ minWidth: 0, p: 0.2 }} onClick={() => setMobileSearch('')}>✕</Button>
+                  </InputAdornment>
+                ) : null
+              }}
+            />
+            <Button
+              size="small"
+              variant={showMobileFilters ? "contained" : "outlined"}
+              color="primary"
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              sx={{ minWidth: '42px', px: 1, py: 0.7, fontWeight: 'bold', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+            >
+              ⚙️
+            </Button>
+          </Box>
+
+          {/* Row 2: Stock Filter */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+            <ToggleButtonGroup
+              size="small"
+              value={availabilityFilter}
+              exclusive
+              onChange={(e, val) => val && setAvailabilityFilter(val)}
+              color="primary"
+            >
+              <ToggleButton value="ALL" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold' }}>ALL</ToggleButton>
+              <ToggleButton value="YES" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold', color: 'success.main' }}>YES (Stock)</ToggleButton>
+              <ToggleButton value="NO" sx={{ px: 1, py: 0.2, fontSize: '0.75rem', fontWeight: 'bold', color: 'error.main' }}>NO (Out)</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          {/* Expandable Section: Export CSV, Print PDF, Date Controls */}
+          {showMobileFilters && (
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1, borderTop: '1px dashed #e2e8f0' }}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button size="small" variant="outlined" color="primary" startIcon={<DownloadIcon />} onClick={handleExportCSV} fullWidth sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                  Export CSV
+                </Button>
+                <Button size="small" variant="outlined" color="secondary" startIcon={<PrintIcon />} onClick={handlePrintPDF} fullWidth sx={{ fontWeight: 'bold', fontSize: '0.75rem' }}>
+                  Print PDF
+                </Button>
+              </Box>
+
+              <Stack direction="row" spacing={1} sx={{ width: '100%' }}>
+                <Button variant="outlined" size="small" onClick={() => setPresetDate(1)} sx={{ flexGrow: 1, fontSize: '0.75rem' }}>1 Mo</Button>
+                <Button variant="outlined" size="small" onClick={() => setPresetDate(6)} sx={{ flexGrow: 1, fontSize: '0.75rem' }}>6 Mo</Button>
+                <Button variant="outlined" size="small" onClick={() => setPresetDate(12)} sx={{ flexGrow: 1, fontSize: '0.75rem' }}>1 Yr</Button>
+              </Stack>
+              
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={e => setStartDate(e.target.value)} 
+                  style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.75rem', width: '100%' }}
+                />
+                <Typography variant="caption">to</Typography>
+                <input 
+                  type="date" 
+                  value={endDate} 
+                  onChange={e => setEndDate(e.target.value)} 
+                  style={{ padding: '4px 6px', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.75rem', width: '100%' }}
+                />
+              </Box>
+            </Box>
+          )}
         </Box>
       </Box>
 
@@ -468,7 +591,7 @@ const MISReport = () => {
                  </Box>
 
                  {/* Mobile Cards View (< md) */}
-                 <Box sx={{ display: { xs: 'block', md: 'none' }, p: 1.5, overflowY: 'auto', maxHeight: '500px' }}>
+                 <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', flexGrow: 1, overflowY: 'auto', p: 1.5 }}>
                     <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
                        Transaction Log History
                     </Typography>

@@ -30,6 +30,8 @@ let globalAllStockEntries = [];
 function calculateStockState(row, allBackendRows) {
     if (!row || !row.materialCode) return { runningBalance: 0, available: 'NO' };
     
+    const targetCode = String(row.materialCode).trim().toLowerCase();
+    
     const allRows = [...allBackendRows];
     const existingIndex = allRows.findIndex(r => r.id === row.id);
     if (existingIndex !== -1) {
@@ -38,8 +40,8 @@ function calculateStockState(row, allBackendRows) {
         allRows.push(row);
     }
     
-    const materialRows = allRows.filter(r => r.materialCode === row.materialCode).map((r, i) => ({ ...r, _index: i }));
-    
+    const materialRows = allRows.filter(r => r.materialCode && String(r.materialCode).trim().toLowerCase() === targetCode).map((r, i) => ({ ...r, _index: i }));
+
     const getNormalizedDate = (d) => {
         if (!d) return 'nodate';
         if (d instanceof Date) {
@@ -67,31 +69,48 @@ function calculateStockState(row, allBackendRows) {
         return b._index - a._index;
     });
 
-    let arrivalGroups = {};
-    let totalOut = 0;
-    let runningBalance = 0;
-    
+    let totalArrivalQty = 0;
+    let arrivalBatches = {};
+
+    materialRows.forEach(r => {
+        const outQty = parseFloat(r.outgoingQuantity || 0);
+        const arrQty = parseFloat(r.arrivalQuantity || 0);
+
+        if (outQty === 0 && arrQty > 0) {
+            const arrDate = getNormalizedDate(r.arrivalDate);
+            const arrTime = r.arrivalTime || 'notime';
+            const batchKey = `${arrDate}_${arrTime}_${arrQty}`;
+            if (!arrivalBatches[batchKey] || arrQty > arrivalBatches[batchKey]) {
+                arrivalBatches[batchKey] = arrQty;
+            }
+        }
+    });
+
+    Object.values(arrivalBatches).forEach(qty => {
+        totalArrivalQty += qty;
+    });
+
+    let cumulativeOut = 0;
+
     for (let i = 0; i < materialRows.length; i++) {
         const r = materialRows[i];
-        const arrDate = getNormalizedDate(r.arrivalDate);
-        const arrTime = r.arrivalTime || 'notime';
-        const arrQty = parseFloat(r.arrivalQuantity || 0);
-        const key = `${arrDate}_${arrTime}_${arrQty}`;
-        
-        if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
-            arrivalGroups[key] = arrQty;
-        }
-        
-        let currentTotalArr = 0;
-        Object.values(arrivalGroups).forEach(val => currentTotalArr += val);
-        totalOut += parseFloat(r.outgoingQuantity || 0);
-        runningBalance = currentTotalArr - totalOut;
-        
+        const outQty = parseFloat(r.outgoingQuantity || 0);
+        cumulativeOut += outQty;
+
         if (r.id === row.id) {
-            return { runningBalance, available: runningBalance > 0 ? 'YES' : 'NO' };
+            const runningBalance = totalArrivalQty - cumulativeOut;
+            return {
+                runningBalance: Math.max(0, runningBalance),
+                available: runningBalance > 0 ? 'YES' : 'NO'
+            };
         }
     }
-    return { runningBalance: 0, available: 'NO' };
+
+    const overallBalance = totalArrivalQty - cumulativeOut;
+    return {
+        runningBalance: Math.max(0, overallBalance),
+        available: overallBalance > 0 ? 'YES' : 'NO'
+    };
 }
 
 function AutocompleteEditCell(props) {

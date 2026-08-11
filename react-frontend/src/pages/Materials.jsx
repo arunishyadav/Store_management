@@ -70,12 +70,15 @@ const Materials = () => {
         const calculateGroupedArrival = (entriesList) => {
             let arrivalGroups = {};
             entriesList.forEach(e => {
-                const arrDate = getNormalizedDate(e.arrivalDate);
-                const arrTime = e.arrivalTime || 'notime';
+                const outQty = parseFloat(e.outgoingQuantity || 0);
                 const arrQty = parseFloat(e.arrivalQuantity || 0);
-                const key = `${arrDate}_${arrTime}_${arrQty}`;
-                if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
-                    arrivalGroups[key] = arrQty;
+                if (outQty === 0 && arrQty > 0) {
+                    const arrDate = getNormalizedDate(e.arrivalDate);
+                    const arrTime = e.arrivalTime || 'notime';
+                    const key = `${arrDate}_${arrTime}_${arrQty}`;
+                    if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
+                        arrivalGroups[key] = arrQty;
+                    }
                 }
             });
             let total = 0;

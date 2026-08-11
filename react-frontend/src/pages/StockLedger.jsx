@@ -769,14 +769,16 @@ export default function StockLedger() {
                               <Typography variant="body2" fontWeight="bold">{row.arrivalQuantity || 0}</Typography>
                             </Grid>
                             <Grid item xs={6}>
-                              <Typography variant="caption" color="text.secondary" display="block">Outgoing Qty</Typography>
+                              <Typography variant="caption" color="text.secondary" display="block">Outgoing Qty (Out)</Typography>
                               <Typography variant="body2" fontWeight="bold" color={row.outgoingQuantity > 0 ? 'error.main' : 'text.primary'}>
                                 {row.outgoingQuantity || 0}
                               </Typography>
                             </Grid>
                             <Grid item xs={6}>
-                              <Typography variant="caption" color="text.secondary" display="block">Arrival Date</Typography>
-                              <Typography variant="body2">{row.arrivalDate ? new Date(row.arrivalDate).toLocaleDateString() : 'N/A'}</Typography>
+                              <Typography variant="caption" color="text.secondary" display="block">Arrival Date & Time</Typography>
+                              <Typography variant="body2">
+                                {row.arrivalDate ? `${new Date(row.arrivalDate).toLocaleDateString()} ${row.arrivalTime || ''}`.trim() : 'N/A'}
+                              </Typography>
                             </Grid>
                             <Grid item xs={6}>
                               <Typography variant="caption" color="text.secondary" display="block">Issue Date</Typography>
@@ -790,6 +792,18 @@ export default function StockLedger() {
                               <Typography variant="caption" color="text.secondary" display="block">Issued By</Typography>
                               <Typography variant="body2">{row.issuedBy || 'N/A'}</Typography>
                             </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" color="text.secondary" display="block">Store Incharge</Typography>
+                              <Typography variant="body2">{row.storeInchargeName || 'N/A'}</Typography>
+                            </Grid>
+                            {(row.productLength || row.innerDiameter || row.kg) && (
+                              <Grid item xs={6}>
+                                <Typography variant="caption" color="text.secondary" display="block">Spec (L/Dia/KG)</Typography>
+                                <Typography variant="body2">
+                                  {[row.productLength, row.innerDiameter, row.kg ? `${row.kg}kg` : null].filter(Boolean).join(' / ') || 'N/A'}
+                                </Typography>
+                              </Grid>
+                            )}
                           </Grid>
 
                           <Box sx={{ mt: 1.5, p: 1, borderRadius: 2, backgroundColor: '#edf2f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -825,24 +839,60 @@ export default function StockLedger() {
       {/* Mobile Edit Record Dialog */}
       <Dialog open={mobileEditOpen} onClose={() => setMobileEditOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold' }}>
-          {mobileEditingRow?.isNew ? 'Add New Record' : 'Edit Entry Record'}
+          {mobileEditingRow?.isNew ? 'Add New Entry Record' : 'Edit Entry Record'}
         </DialogTitle>
         <DialogContent dividers>
           {mobileEditingRow && (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
               <Autocomplete
-                options={materials.map(m => ({ value: m.materialCode, label: `${m.materialCode} - ${m.name}`, name: m.name }))}
-                getOptionLabel={(opt) => typeof opt === 'string' ? opt : opt.label || ''}
-                value={materials.find(m => m.materialCode === mobileEditingRow.materialCode) ? `${mobileEditingRow.materialCode} - ${mobileEditingRow.materialName || ''}` : mobileEditingRow.materialCode || ''}
-                onChange={(e, val) => {
-                  if (typeof val === 'string') {
-                    setMobileEditingRow(prev => ({ ...prev, materialCode: val }));
-                  } else if (val && val.value) {
-                    setMobileEditingRow(prev => ({ ...prev, materialCode: val.value, materialName: val.name }));
+                freeSolo
+                options={materials.map(m => ({ code: m.materialCode, name: m.name, category: m.category, id: m.id }))}
+                getOptionLabel={(option) => typeof option === 'string' ? option : option.code ? `${option.code} - ${option.name}` : ''}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props} key={option.id}>
+                    <Typography variant="body2">
+                      <strong>{option.code}</strong> - {option.name} ({option.category})
+                    </Typography>
+                  </Box>
+                )}
+                value={mobileEditingRow.materialCode ? `${mobileEditingRow.materialCode}${mobileEditingRow.materialName ? ` - ${mobileEditingRow.materialName}` : ''}` : ''}
+                onChange={(event, newValue) => {
+                  if (typeof newValue === 'string') {
+                    setMobileEditingRow(prev => ({ ...prev, materialCode: newValue }));
+                  } else if (newValue && newValue.code) {
+                    setMobileEditingRow(prev => ({
+                      ...prev,
+                      materialCode: newValue.code,
+                      materialName: newValue.name
+                    }));
                   }
                 }}
-                renderInput={(params) => <TextField {...params} label="Select Material" fullWidth variant="outlined" size="small" />}
+                onInputChange={(event, newInputValue) => {
+                  const match = materials.find(m => 
+                    m.materialCode.toLowerCase() === (newInputValue || '').trim().toLowerCase() ||
+                    m.name.toLowerCase() === (newInputValue || '').trim().toLowerCase()
+                  );
+                  if (match) {
+                    setMobileEditingRow(prev => ({
+                      ...prev,
+                      materialCode: match.materialCode,
+                      materialName: match.name
+                    }));
+                  } else {
+                    setMobileEditingRow(prev => ({ ...prev, materialCode: newInputValue }));
+                  }
+                }}
+                renderInput={(params) => <TextField {...params} label="Search Item (Code/Name)" fullWidth variant="outlined" size="small" />}
               />
+
+              <TextField
+                label="Product Name"
+                size="small"
+                fullWidth
+                value={mobileEditingRow.materialName || ''}
+                onChange={e => setMobileEditingRow({ ...mobileEditingRow, materialName: e.target.value })}
+              />
+
               <TextField
                 label="Bill Number"
                 size="small"
@@ -850,6 +900,7 @@ export default function StockLedger() {
                 value={mobileEditingRow.billNumber || ''}
                 onChange={e => setMobileEditingRow({ ...mobileEditingRow, billNumber: e.target.value })}
               />
+
               <Grid container spacing={1.5}>
                 <Grid item xs={6}>
                   <TextField
@@ -863,7 +914,7 @@ export default function StockLedger() {
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Outgoing Quantity"
+                    label="Outgoing Quantity (Out)"
                     type="number"
                     size="small"
                     fullWidth
@@ -872,10 +923,11 @@ export default function StockLedger() {
                   />
                 </Grid>
               </Grid>
+
               <Grid container spacing={1.5}>
                 <Grid item xs={6}>
                   <TextField
-                    label="Arrival Date"
+                    label="Store Arrival Date"
                     type="date"
                     size="small"
                     fullWidth
@@ -884,6 +936,19 @@ export default function StockLedger() {
                     onChange={e => setMobileEditingRow({ ...mobileEditingRow, arrivalDate: e.target.value })}
                   />
                 </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Arrival Time (HH:MM)"
+                    size="small"
+                    fullWidth
+                    placeholder="10:30"
+                    value={mobileEditingRow.arrivalTime || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, arrivalTime: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+
+              <Grid container spacing={1.5}>
                 <Grid item xs={6}>
                   <TextField
                     label="Issue Date"
@@ -895,7 +960,17 @@ export default function StockLedger() {
                     onChange={e => setMobileEditingRow({ ...mobileEditingRow, issueDate: e.target.value })}
                   />
                 </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Issued By"
+                    size="small"
+                    fullWidth
+                    value={mobileEditingRow.issuedBy || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, issuedBy: e.target.value })}
+                  />
+                </Grid>
               </Grid>
+
               <Grid container spacing={1.5}>
                 <Grid item xs={6}>
                   <TextField
@@ -908,11 +983,41 @@ export default function StockLedger() {
                 </Grid>
                 <Grid item xs={6}>
                   <TextField
-                    label="Issued By"
+                    label="Store Incharge Name"
                     size="small"
                     fullWidth
-                    value={mobileEditingRow.issuedBy || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, issuedBy: e.target.value })}
+                    value={mobileEditingRow.storeInchargeName || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, storeInchargeName: e.target.value })}
+                  />
+                </Grid>
+              </Grid>
+
+              <Grid container spacing={1.5}>
+                <Grid item xs={4}>
+                  <TextField
+                    label="Product Length"
+                    size="small"
+                    fullWidth
+                    value={mobileEditingRow.productLength || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, productLength: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    label="Inner Diameter"
+                    size="small"
+                    fullWidth
+                    value={mobileEditingRow.innerDiameter || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, innerDiameter: e.target.value })}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    label="KG"
+                    size="small"
+                    fullWidth
+                    value={mobileEditingRow.kg || ''}
+                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, kg: e.target.value })}
                   />
                 </Grid>
               </Grid>

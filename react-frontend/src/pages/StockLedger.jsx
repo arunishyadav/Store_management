@@ -25,6 +25,75 @@ const initialRow = {
   isNew: true
 };
 
+let globalAllStockEntries = [];
+
+function calculateStockState(row, allBackendRows) {
+    if (!row || !row.materialCode) return { runningBalance: 0, available: 'NO' };
+    
+    const allRows = [...allBackendRows];
+    const existingIndex = allRows.findIndex(r => r.id === row.id);
+    if (existingIndex !== -1) {
+        allRows[existingIndex] = row;
+    } else {
+        allRows.push(row);
+    }
+    
+    const materialRows = allRows.filter(r => r.materialCode === row.materialCode).map((r, i) => ({ ...r, _index: i }));
+    
+    const getNormalizedDate = (d) => {
+        if (!d) return 'nodate';
+        if (d instanceof Date) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        return String(d).substring(0, 10);
+    };
+
+    materialRows.sort((a, b) => {
+        const isNewA = !!a.isNew;
+        const isNewB = !!b.isNew;
+        if (!isNewA && isNewB) return -1;
+        if (isNewA && !isNewB) return 1;
+        
+        const dateStrA = getNormalizedDate(a.issueDate || a.arrivalDate);
+        const dateStrB = getNormalizedDate(b.issueDate || b.arrivalDate);
+        if (dateStrA < dateStrB) return -1;
+        if (dateStrA > dateStrB) return 1;
+        
+        const outA = parseFloat(a.outgoingQuantity || 0);
+        const outB = parseFloat(b.outgoingQuantity || 0);
+        if (outA === 0 && outB > 0) return -1;
+        if (outA > 0 && outB === 0) return 1;
+
+        return b._index - a._index;
+    });
+
+    let arrivalGroups = {};
+    let totalOut = 0;
+    let runningBalance = 0;
+    
+    for (let i = 0; i < materialRows.length; i++) {
+        const r = materialRows[i];
+        const arrDate = getNormalizedDate(r.arrivalDate);
+        const arrTime = r.arrivalTime || 'notime';
+        const arrQty = parseFloat(r.arrivalQuantity || 0);
+        const key = `${arrDate}_${arrTime}_${arrQty}`;
+        
+        if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
+            arrivalGroups[key] = arrQty;
+        }
+        
+        let currentTotalArr = 0;
+        Object.values(arrivalGroups).forEach(val => currentTotalArr += val);
+        totalOut += parseFloat(r.outgoingQuantity || 0);
+        runningBalance = currentTotalArr - totalOut;
+        
+        if (r.id === row.id) {
+            return { runningBalance, available: runningBalance > 0 ? 'YES' : 'NO' };
+        }
+    }
+    return { runningBalance: 0, available: 'NO' };
+}
+
 function AutocompleteEditCell(props) {
   const { id, value, field, materials } = props;
   const apiRef = useGridApiContext();
@@ -177,78 +246,6 @@ function NameEditCell(props) {
   );
 }
 
-let globalAllStockEntries = [];
-
-const calculateStockState = (row, allBackendRows) => {
-    if (!row.materialCode) return { runningBalance: 0, available: 'NO' };
-    
-    // Combine backend rows with the current row (if it's being edited, it overrides the backend row)
-    const allRows = [...allBackendRows];
-    const existingIndex = allRows.findIndex(r => r.id === row.id);
-    if (existingIndex !== -1) {
-        allRows[existingIndex] = row;
-    } else {
-        allRows.push(row);
-    }
-    
-    const materialRows = allRows.filter(r => r.materialCode === row.materialCode).map((r, i) => ({ ...r, _index: i }));
-    
-    const getNormalizedDate = (d) => {
-        if (!d) return 'nodate';
-        if (d instanceof Date) {
-            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        }
-        return String(d).substring(0, 10);
-    };
-
-    // Sort rows carefully
-    materialRows.sort((a, b) => {
-        // 1. Ensure NEW, unfinished rows ALWAYS come LAST! (Check this BEFORE dates and everything else)
-        const isNewA = !!a.isNew;
-        const isNewB = !!b.isNew;
-        if (!isNewA && isNewB) return -1;
-        if (isNewA && !isNewB) return 1;
-        
-        const dateStrA = getNormalizedDate(a.issueDate || a.arrivalDate);
-        const dateStrB = getNormalizedDate(b.issueDate || b.arrivalDate);
-        if (dateStrA < dateStrB) return -1;
-        if (dateStrA > dateStrB) return 1;
-        
-        // 2. If both are old (or both are new), put pure arrivals first
-        const outA = parseFloat(a.outgoingQuantity || 0);
-        const outB = parseFloat(b.outgoingQuantity || 0);
-        if (outA === 0 && outB > 0) return -1;
-        if (outA > 0 && outB === 0) return 1;
-
-        // 3. If dates and types are equal, process them in REVERSE visual order (Bottom to Top)
-        // Since DataGrid displays top-to-bottom based on allRows index, reversing the index
-        // ensures the running balance flows logically from the bottom of the screen to the top!
-        return b._index - a._index;
-    });
-
-    let arrivalGroups = {};
-    let totalOut = 0;
-    let runningBalance = 0;
-    
-    for (let i = 0; i < materialRows.length; i++) {
-        const r = materialRows[i];
-        const arrDate = getNormalizedDate(r.arrivalDate);
-        const arrTime = r.arrivalTime || 'notime';
-        const arrQty = parseFloat(r.arrivalQuantity || 0);
-        const key = `${arrDate}_${arrTime}_${arrQty}`;
-        
-        if (!arrivalGroups[key] || arrQty > arrivalGroups[key]) {
-            arrivalGroups[key] = arrQty;
-        }
-        
-        let currentTotalArr = 0;
-        Object.values(arrivalGroups).forEach(val => currentTotalArr += val);
-        totalOut += parseFloat(r.outgoingQuantity || 0);
-        runningBalance = currentTotalArr - totalOut;
-        
-        if (r.id === row.id) {
-            return { runningBalance, available: runningBalance > 0 ? 'YES' : 'NO' };
-        }
     }
     return { runningBalance: 0, available: 'NO' };
 };

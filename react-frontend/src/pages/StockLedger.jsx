@@ -777,7 +777,7 @@ export default function StockLedger() {
                 value={mobileEditingRow.billNumber || ''}
                 onChange={e => setMobileEditingRow({ ...mobileEditingRow, billNumber: e.target.value })}
               />
-              <Grid container spacing=1.5>
+              <Grid container spacing={1.5}>
                 <Grid item xs={6}>
                   <TextField
                     label="Arrival Quantity"
@@ -799,7 +799,7 @@ export default function StockLedger() {
                   />
                 </Grid>
               </Grid>
-              <Grid container spacing=1.5>
+              <Grid container spacing={1.5}>
                 <Grid item xs={6}>
                   <TextField
                     label="Arrival Date"
@@ -823,7 +823,7 @@ export default function StockLedger() {
                   />
                 </Grid>
               </Grid>
-              <Grid container spacing=1.5>
+              <Grid container spacing={1.5}>
                 <Grid item xs={6}>
                   <TextField
                     label="Lane Wala Name"

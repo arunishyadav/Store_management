@@ -1235,7 +1235,7 @@ export default function StockLedger() {
 
                       if (targetEntry) {
                         updated.arrivalQuantity = targetEntry.arrivalQuantity || prev?.arrivalQuantity || '';
-                        updated.arrivalDate = targetEntry.arrivalDate || prev?.arrivalDate || (dateFilter || todayStr);
+                        updated.arrivalDate = targetEntry.arrivalDate ? String(targetEntry.arrivalDate).substring(0, 10) : (dateFilter || todayStr);
                         updated.arrivalTime = targetEntry.arrivalTime || prev?.arrivalTime || '';
                         updated.broughtBy = targetEntry.broughtBy || prev?.broughtBy || '';
                         updated.storeInchargeName = targetEntry.storeInchargeName || prev?.storeInchargeName || '';
@@ -1247,18 +1247,6 @@ export default function StockLedger() {
                     });
                   }
                 }}
-                onInputChange={(event, newInputValue) => {
-                  const trimmed = (newInputValue || '').trim();
-                  const match = materials.find(m => 
-                    m.materialCode.toLowerCase() === trimmed.toLowerCase() ||
-                    m.name.toLowerCase() === trimmed.toLowerCase()
-                  );
-                  if (match) {
-                    handleSelectMaterialInMobile(match.materialCode);
-                  } else {
-                    setMobileEditingRow(prev => ({ ...prev, materialCode: newInputValue }));
-                  }
-                }}
                 renderInput={(params) => <TextField {...params} label="Search Item (Code/Name)" fullWidth variant="outlined" size="small" />}
               />
 
@@ -1267,7 +1255,7 @@ export default function StockLedger() {
                 size="small"
                 fullWidth
                 value={mobileEditingRow.materialName || ''}
-                onChange={e => setMobileEditingRow({ ...mobileEditingRow, materialName: e.target.value })}
+                onChange={e => setMobileEditingRow(prev => ({ ...prev, materialName: e.target.value }))}
               />
 
               <TextField
@@ -1275,7 +1263,7 @@ export default function StockLedger() {
                 size="small"
                 fullWidth
                 value={mobileEditingRow.billNumber || ''}
-                onChange={e => setMobileEditingRow({ ...mobileEditingRow, billNumber: e.target.value })}
+                onChange={e => setMobileEditingRow(prev => ({ ...prev, billNumber: e.target.value }))}
               />
 
               <Grid container spacing={1.5}>
@@ -1286,7 +1274,7 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     value={mobileEditingRow.arrivalQuantity || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, arrivalQuantity: e.target.value })}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, arrivalQuantity: e.target.value }))}
                   />
                 </Grid>
                 <Grid item xs={6}>
@@ -1296,7 +1284,7 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     value={mobileEditingRow.outgoingQuantity || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, outgoingQuantity: e.target.value })}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, outgoingQuantity: e.target.value }))}
                   />
                 </Grid>
               </Grid>
@@ -1309,8 +1297,8 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     InputLabelProps={{ shrink: true }}
-                    value={mobileEditingRow.arrivalDate ? mobileEditingRow.arrivalDate.substring(0, 10) : ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, arrivalDate: e.target.value })}
+                    value={mobileEditingRow.arrivalDate ? String(mobileEditingRow.arrivalDate).substring(0, 10) : ''}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, arrivalDate: e.target.value }))}
                   />
                 </Grid>
                 <Grid item xs={6}>
@@ -1320,7 +1308,7 @@ export default function StockLedger() {
                     fullWidth
                     placeholder="10:30"
                     value={mobileEditingRow.arrivalTime || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, arrivalTime: e.target.value })}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, arrivalTime: e.target.value }))}
                   />
                 </Grid>
               </Grid>
@@ -1333,8 +1321,8 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     InputLabelProps={{ shrink: true }}
-                    value={mobileEditingRow.issueDate ? mobileEditingRow.issueDate.substring(0, 10) : ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, issueDate: e.target.value })}
+                    value={mobileEditingRow.issueDate ? String(mobileEditingRow.issueDate).substring(0, 10) : ''}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, issueDate: e.target.value }))}
                   />
                 </Grid>
                 <Grid item xs={6}>
@@ -1343,7 +1331,7 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     value={mobileEditingRow.issuedBy || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, issuedBy: e.target.value })}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, issuedBy: e.target.value }))}
                   />
                 </Grid>
               </Grid>
@@ -1355,7 +1343,7 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     value={mobileEditingRow.broughtBy || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, broughtBy: e.target.value })}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, broughtBy: e.target.value }))}
                   />
                 </Grid>
                 <Grid item xs={6}>
@@ -1364,7 +1352,7 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     value={mobileEditingRow.storeInchargeName || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, storeInchargeName: e.target.value })}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, storeInchargeName: e.target.value }))}
                   />
                 </Grid>
               </Grid>
@@ -1376,7 +1364,7 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     value={mobileEditingRow.productLength || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, productLength: e.target.value })}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, productLength: e.target.value }))}
                   />
                 </Grid>
                 <Grid item xs={4}>
@@ -1385,7 +1373,7 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     value={mobileEditingRow.innerDiameter || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, innerDiameter: e.target.value })}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, innerDiameter: e.target.value }))}
                   />
                 </Grid>
                 <Grid item xs={4}>
@@ -1394,7 +1382,7 @@ export default function StockLedger() {
                     size="small"
                     fullWidth
                     value={mobileEditingRow.kg || ''}
-                    onChange={e => setMobileEditingRow({ ...mobileEditingRow, kg: e.target.value })}
+                    onChange={e => setMobileEditingRow(prev => ({ ...prev, kg: e.target.value }))}
                   />
                 </Grid>
               </Grid>

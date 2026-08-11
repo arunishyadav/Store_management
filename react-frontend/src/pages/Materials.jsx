@@ -7,6 +7,7 @@ import useAuthStore from '../store/authStore';
 
 const Materials = () => {
   const [rows, setRows] = useState([]);
+  const [allUniqueMaterials, setAllUniqueMaterials] = useState([]);
   const [rowModesModel, setRowModesModel] = useState({});
   const [loading, setLoading] = useState(false);
   const locationId = useAuthStore(state => state.selectedLocation?.id);
@@ -106,6 +107,7 @@ const Materials = () => {
         };
       });
 
+      setAllUniqueMaterials(formattedRows);
       const displayRows = selectedDate ? formattedRows.filter(r => r.hasActivityToday) : formattedRows;
       setRows(displayRows);
     } catch (error) {
@@ -127,7 +129,7 @@ const Materials = () => {
           }
 
           // Check if a material with this code already exists
-          const existingMaterial = rows.find(r => r.materialCode.toLowerCase() === trimmedCode.toLowerCase());
+          const existingMaterial = allUniqueMaterials.find(r => r.materialCode.toLowerCase() === trimmedCode.toLowerCase());
           
           let targetMaterialId;
 
@@ -301,17 +303,17 @@ const Materials = () => {
   }
 
   return (
-    <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 } }}>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, gap: 2 }}>
-        <Typography variant="h4" fontWeight="bold" sx={{ px: { xs: 2, sm: 0 }, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>Materials</Typography>
-         <Box display="flex" gap={2} alignItems="center" sx={{ px: { xs: 2, sm: 0 }, width: { xs: '100%', sm: 'auto' }, overflowX: 'auto' }}>
-           <Box display="flex" alignItems="center" gap={1}>
-              <Typography variant="body1" fontWeight="bold" whiteSpace="nowrap">Sheet Date:</Typography>
+    <Box sx={{ height: { xs: 'calc(100vh - 140px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 2, gap: 1.5 }}>
+        <Typography variant="h4" fontWeight="bold" sx={{ px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>Materials</Typography>
+         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', width: { xs: '100%', sm: 'auto' }, px: { xs: 1.5, sm: 0 } }}>
+           <Box display="flex" alignItems="center" gap={1} sx={{ flexGrow: 1 }}>
+              <Typography variant="body2" fontWeight="bold" whiteSpace="nowrap">Sheet Date:</Typography>
               <input 
                   type="date" 
                   value={selectedDate} 
                   onChange={(e) => setSelectedDate(e.target.value)} 
-                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', flexGrow: 1, maxWidth: '160px' }}
               />
               <Button 
                 variant={selectedDate ? "contained" : "outlined"} 
@@ -328,7 +330,7 @@ const Materials = () => {
                variant="contained" 
                color="primary" 
                startIcon={<AddIcon />} 
-               sx={{ whiteSpace: 'nowrap' }}
+               sx={{ whiteSpace: 'nowrap', width: { xs: '100%', sm: 'auto' } }}
                onClick={() => {
                  setNewMat(prev => ({ ...prev, arrivalDate: selectedDate || todayStr }));
                  setOpen(true);
@@ -340,7 +342,7 @@ const Materials = () => {
         </Box>
       </Box>
 
-      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: 3, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: { xs: 2, sm: 3 }, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
         {loading ? (
            <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (
@@ -378,9 +380,9 @@ const Materials = () => {
           <DialogTitle sx={{ fontWeight: 'bold' }}>Add New Material & Entry</DialogTitle>
           <DialogContent dividers>
               <Typography variant="subtitle2" color="primary" gutterBottom>Master Details (Required)</Typography>
-              <Autocomplete
+               <Autocomplete
                   freeSolo
-                  options={rows.map(r => ({ code: r.materialCode, name: r.name, category: r.category, id: r.id }))}
+                  options={allUniqueMaterials.map(r => ({ code: r.materialCode, name: r.name, category: r.category, id: r.id }))}
                   getOptionLabel={(option) => typeof option === 'string' ? option : option.code || ''}
                   renderOption={(props, option) => (
                       <Box component="li" {...props} key={option.id}>
@@ -406,7 +408,7 @@ const Materials = () => {
                   }}
                   onInputChange={(event, newInputValue) => {
                       setNewMat(prev => ({ ...prev, code: newInputValue }));
-                      const match = rows.find(r => r.materialCode.toLowerCase() === (newInputValue || '').trim().toLowerCase());
+                      const match = allUniqueMaterials.find(r => r.materialCode.toLowerCase() === (newInputValue || '').trim().toLowerCase());
                       if (match) {
                           setNewMat(prev => ({
                               ...prev,
@@ -421,7 +423,7 @@ const Materials = () => {
               />
               <Autocomplete
                   freeSolo
-                  options={rows.map(r => ({ code: r.materialCode, name: r.name, category: r.category, id: r.id }))}
+                  options={allUniqueMaterials.map(r => ({ code: r.materialCode, name: r.name, category: r.category, id: r.id }))}
                   getOptionLabel={(option) => typeof option === 'string' ? option : option.name || ''}
                   renderOption={(props, option) => (
                       <Box component="li" {...props} key={'name-' + option.id}>
@@ -447,7 +449,7 @@ const Materials = () => {
                   }}
                   onInputChange={(event, newInputValue) => {
                       setNewMat(prev => ({ ...prev, name: newInputValue }));
-                      const match = rows.find(r => r.name.toLowerCase() === (newInputValue || '').trim().toLowerCase());
+                      const match = allUniqueMaterials.find(r => r.name.toLowerCase() === (newInputValue || '').trim().toLowerCase());
                       if (match) {
                           setNewMat(prev => ({
                               ...prev,

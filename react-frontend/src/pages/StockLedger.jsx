@@ -491,20 +491,28 @@ export default function StockLedger() {
       }));
     };
     return (
-      <GridToolbarContainer sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', mb: 1 }}>
+      <GridToolbarContainer sx={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', p: { xs: 1, sm: 1.5 } }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' }, 
+          justifyContent: 'space-between', 
+          alignItems: { xs: 'stretch', sm: 'center' }, 
+          gap: 1.5, 
+          width: '100%', 
+          mb: 1 
+        }}>
             {currentUser?.role !== 'USER' ? (
-              <Button color="primary" startIcon={<AddIcon />} onClick={handleClick}>
+              <Button color="primary" variant="contained" startIcon={<AddIcon />} onClick={handleClick} sx={{ width: { xs: '100%', sm: 'auto' } }}>
                 Add record
               </Button>
             ) : <Box />}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mr: 2 }}>
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>Sheet Date:</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Sheet Date:</Typography>
                 <input 
                     type="date" 
                     value={dateFilter} 
                     onChange={(e) => setDateFilter(e.target.value)} 
-                    style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ padding: '6px 8px', borderRadius: '6px', border: '1px solid #ccc', flexGrow: 1, maxWidth: '160px' }}
                 />
                 {dateFilter && <Button size="small" color="secondary" onClick={() => setDateFilter('')}>Clear</Button>}
             </Box>
@@ -528,11 +536,11 @@ export default function StockLedger() {
     : rows;
 
   return (
-    <Box sx={{ p: { xs: 0, sm: 1, md: 2 }, height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column' }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mt: { xs: 1, sm: 0 }, px: { xs: 2, sm: 0 }, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+    <Box sx={{ p: { xs: 0, sm: 1, md: 2 }, height: { xs: 'calc(100vh - 140px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', maxWidth: '100vw', boxSizing: 'border-box' }}>
+      <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mt: { xs: 0.5, sm: 0 }, px: { xs: 1.5, sm: 0 }, fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
         Entry Book
       </Typography>
-      <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
+      <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0, borderRadius: { xs: 2, sm: 3 } }}>
         {loading ? (
           <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
         ) : (

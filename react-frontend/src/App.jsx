@@ -31,11 +31,13 @@ const ProtectedLayout = () => {
       <Sidebar mobileOpen={mobileOpen} handleDrawerToggle={handleDrawerToggle} />
       <Box component="main" sx={{ 
         flexGrow: 1, 
-        p: { xs: 1, sm: 2, md: 3 }, // Less padding on mobile
-        pb: { xs: 8, sm: 2, md: 3 }, // Space for BottomNav on mobile
+        p: { xs: 1, sm: 2, md: 3 },
+        pb: { xs: 8, sm: 2, md: 3 }, // Extra space for BottomNav on mobile
         backgroundColor: 'background.default', 
         minHeight: '100vh',
-        width: { sm: `calc(100% - 240px)` }, // Prevent overlap on desktop
+        width: { xs: '100%', sm: `calc(100% - 240px)` },
+        maxWidth: '100vw',
+        boxSizing: 'border-box',
         overflowX: 'hidden'
       }}>
         <Toolbar />

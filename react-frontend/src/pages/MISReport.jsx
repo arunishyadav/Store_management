@@ -215,19 +215,19 @@ const MISReport = () => {
   ];
 
   return (
-    <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 } }}>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', lg: 'center' }, mb: 2, gap: 2, px: { xs: 2, sm: 0 } }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
+    <Box sx={{ height: { xs: 'calc(100vh - 140px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, mb: 2, gap: 1.5, px: { xs: 1.5, sm: 0 } }}>
+        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main', fontSize: { xs: '1.4rem', sm: '2.125rem' } }}>
           MIS Dashboard
         </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-             <Button variant="outlined" size="small" onClick={() => setPresetDate(1)}>1 Mo</Button>
-             <Button variant="outlined" size="small" onClick={() => setPresetDate(6)}>6 Mo</Button>
-             <Button variant="outlined" size="small" onClick={() => setPresetDate(12)}>1 Yr</Button>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
+           <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
+             <Button variant="outlined" size="small" onClick={() => setPresetDate(1)} sx={{ flexGrow: 1 }}>1 Mo</Button>
+             <Button variant="outlined" size="small" onClick={() => setPresetDate(6)} sx={{ flexGrow: 1 }}>6 Mo</Button>
+             <Button variant="outlined" size="small" onClick={() => setPresetDate(12)} sx={{ flexGrow: 1 }}>1 Yr</Button>
            </Stack>
            
-           <Stack direction="row" spacing={1} alignItems="center">
+           <Stack direction="row" spacing={1} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' } }}>
              <TextField 
                label="Start Date" 
                type="date" 
@@ -235,7 +235,7 @@ const MISReport = () => {
                onChange={e => setStartDate(e.target.value)} 
                size="small" 
                InputLabelProps={{ shrink: true }} 
-               sx={{ width: 140 }}
+               sx={{ flexGrow: 1, minWidth: 120 }}
              />
              <Typography variant="body2">to</Typography>
              <TextField 
@@ -245,7 +245,7 @@ const MISReport = () => {
                onChange={e => setEndDate(e.target.value)} 
                size="small" 
                InputLabelProps={{ shrink: true }} 
-               sx={{ width: 140 }}
+               sx={{ flexGrow: 1, minWidth: 120 }}
              />
            </Stack>
         </Box>

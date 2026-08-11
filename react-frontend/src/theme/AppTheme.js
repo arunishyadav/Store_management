@@ -78,6 +78,26 @@ const AppTheme = createTheme({
           },
         },
       },
+    MuiCssBaseline: {
+      styleOverrides: {
+        html: {
+          maxWidth: '100vw',
+          overflowX: 'hidden',
+          WebkitTapHighlightColor: 'transparent',
+        },
+        body: {
+          maxWidth: '100vw',
+          overflowX: 'hidden',
+          backgroundColor: '#F7FAFC',
+          margin: 0,
+          padding: 0,
+        },
+        '#root': {
+          maxWidth: '100vw',
+          overflowX: 'hidden',
+          boxSizing: 'border-box',
+        },
+      },
     },
   },
 });

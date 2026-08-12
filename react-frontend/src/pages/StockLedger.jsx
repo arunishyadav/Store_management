@@ -1236,9 +1236,19 @@ export default function StockLedger() {
                       };
 
                       if (targetEntry) {
+                        updated.arrivalQuantity = targetEntry.arrivalQuantity || prev?.arrivalQuantity || '';
+                        updated.arrivalDate = targetEntry.arrivalDate ? String(targetEntry.arrivalDate).substring(0, 10) : (dateFilter || todayStr);
+                        updated.arrivalTime = targetEntry.arrivalTime || prev?.arrivalTime || '';
+                        updated.broughtBy = targetEntry.broughtBy || prev?.broughtBy || '';
+                        updated.storeInchargeName = targetEntry.storeInchargeName || prev?.storeInchargeName || '';
                         updated.productLength = targetEntry.productLength || prev?.productLength || '';
                         updated.innerDiameter = targetEntry.innerDiameter || prev?.innerDiameter || '';
                         updated.kg = targetEntry.kg || prev?.kg || '';
+                      } else {
+                        const mat = materials.find(m => m.materialCode && m.materialCode.toLowerCase() === selectedCode.toLowerCase());
+                        if (mat) {
+                          updated.materialName = mat.name;
+                        }
                       }
                       return updated;
                     });
@@ -1247,148 +1257,162 @@ export default function StockLedger() {
                 renderInput={(params) => <TextField {...params} label="Search Item (Code/Name)" fullWidth variant="outlined" size="small" />}
               />
 
-              <TextField
-                label="Product Name"
-                size="small"
-                fullWidth
-                value={mobileEditingRow.materialName || ''}
-                onChange={e => setMobileEditingRow(prev => ({ ...prev, materialName: e.target.value }))}
-              />
+              {/* Section 1: Item & Arrival Info */}
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, backgroundColor: '#f8fafc' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#1e293b', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  📦 Item & Arrival Details
+                </Typography>
+                <Grid container spacing={1.5}>
+                  <Grid item xs={12}>
+                    <TextField
+                      label="Product Name"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.materialName || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, materialName: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Bill Number"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.billNumber || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, billNumber: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Arrival Quantity"
+                      type="number"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.arrivalQuantity || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, arrivalQuantity: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Store Arrival Date"
+                      type="date"
+                      size="small"
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      value={mobileEditingRow.arrivalDate ? String(mobileEditingRow.arrivalDate).substring(0, 10) : ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, arrivalDate: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Arrival Time (HH:MM)"
+                      size="small"
+                      fullWidth
+                      placeholder="10:30"
+                      value={mobileEditingRow.arrivalTime || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, arrivalTime: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Lane Wala Name (Brought By)"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.broughtBy || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, broughtBy: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Store Incharge Name"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.storeInchargeName || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, storeInchargeName: e.target.value }))}
+                    />
+                  </Grid>
+                </Grid>
+              </Paper>
 
-              <TextField
-                label="Bill Number"
-                size="small"
-                fullWidth
-                value={mobileEditingRow.billNumber || ''}
-                onChange={e => setMobileEditingRow(prev => ({ ...prev, billNumber: e.target.value }))}
-              />
+              {/* Section 2: Outgoing / Issue Details */}
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, backgroundColor: '#fef2f2', borderColor: '#fca5a5' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#991b1b', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  📤 Issue Details (Outgoing)
+                </Typography>
+                <Grid container spacing={1.5}>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Outgoing Quantity (Out)"
+                      type="number"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.outgoingQuantity || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, outgoingQuantity: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Issue Date"
+                      type="date"
+                      size="small"
+                      fullWidth
+                      InputLabelProps={{ shrink: true }}
+                      value={mobileEditingRow.issueDate ? String(mobileEditingRow.issueDate).substring(0, 10) : ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, issueDate: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Issued By"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.issuedBy || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, issuedBy: e.target.value }))}
+                    />
+                  </Grid>
+                </Grid>
+              </Paper>
 
-              <Grid container spacing={1.5}>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Arrival Quantity"
-                    type="number"
-                    size="small"
-                    fullWidth
-                    value={mobileEditingRow.arrivalQuantity || ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, arrivalQuantity: e.target.value }))}
-                  />
+              {/* Section 3: Physical Specifications */}
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, backgroundColor: '#f8fafc' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#475569', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  📐 Product Physical Specifications
+                </Typography>
+                <Grid container spacing={1.5}>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Product Length"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.productLength || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, productLength: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Inner Diameter"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.innerDiameter || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, innerDiameter: e.target.value }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Weight (KG)"
+                      size="small"
+                      fullWidth
+                      value={mobileEditingRow.kg || ''}
+                      onChange={e => setMobileEditingRow(prev => ({ ...prev, kg: e.target.value }))}
+                    />
+                  </Grid>
                 </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Outgoing Quantity (Out)"
-                    type="number"
-                    size="small"
-                    fullWidth
-                    value={mobileEditingRow.outgoingQuantity || ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, outgoingQuantity: e.target.value }))}
-                  />
-                </Grid>
-              </Grid>
-
-              <Grid container spacing={1.5}>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Store Arrival Date"
-                    type="date"
-                    size="small"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    value={mobileEditingRow.arrivalDate ? String(mobileEditingRow.arrivalDate).substring(0, 10) : ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, arrivalDate: e.target.value }))}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Arrival Time (HH:MM)"
-                    size="small"
-                    fullWidth
-                    placeholder="10:30"
-                    value={mobileEditingRow.arrivalTime || ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, arrivalTime: e.target.value }))}
-                  />
-                </Grid>
-              </Grid>
-
-              <Grid container spacing={1.5}>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Issue Date"
-                    type="date"
-                    size="small"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    value={mobileEditingRow.issueDate ? String(mobileEditingRow.issueDate).substring(0, 10) : ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, issueDate: e.target.value }))}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Issued By"
-                    size="small"
-                    fullWidth
-                    value={mobileEditingRow.issuedBy || ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, issuedBy: e.target.value }))}
-                  />
-                </Grid>
-              </Grid>
-
-              <Grid container spacing={1.5}>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Lane Wala Name"
-                    size="small"
-                    fullWidth
-                    value={mobileEditingRow.broughtBy || ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, broughtBy: e.target.value }))}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    label="Store Incharge Name"
-                    size="small"
-                    fullWidth
-                    value={mobileEditingRow.storeInchargeName || ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, storeInchargeName: e.target.value }))}
-                  />
-                </Grid>
-              </Grid>
-
-              <Grid container spacing={1.5}>
-                <Grid item xs={4}>
-                  <TextField
-                    label="Product Length"
-                    size="small"
-                    fullWidth
-                    value={mobileEditingRow.productLength || ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, productLength: e.target.value }))}
-                  />
-                </Grid>
-                <Grid item xs={4}>
-                  <TextField
-                    label="Inner Diameter"
-                    size="small"
-                    fullWidth
-                    value={mobileEditingRow.innerDiameter || ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, innerDiameter: e.target.value }))}
-                  />
-                </Grid>
-                <Grid item xs={4}>
-                  <TextField
-                    label="KG"
-                    size="small"
-                    fullWidth
-                    value={mobileEditingRow.kg || ''}
-                    onChange={e => setMobileEditingRow(prev => ({ ...prev, kg: e.target.value }))}
-                  />
-                </Grid>
-              </Grid>
+              </Paper>
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setMobileEditOpen(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleMobileSave} variant="contained">Save Record</Button>
+        <DialogActions sx={{ p: 2, gap: 1, backgroundColor: '#f1f5f9' }}>
+          <Button onClick={() => setMobileEditOpen(false)} color="inherit" variant="outlined">Cancel</Button>
+          <Button onClick={handleMobileSave} variant="contained" color="primary" sx={{ px: 3, fontWeight: 'bold' }}>Save Record</Button>
         </DialogActions>
       </Dialog>
     </Box>

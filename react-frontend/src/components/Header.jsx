@@ -64,11 +64,16 @@ const Header = ({ onDrawerToggle }) => {
             </Typography>
             
             <Box>
-              <Button onClick={handleMenu} color="inherit" sx={{ minWidth: 'auto', p: { xs: 1, sm: 1 } }}>
-                <AccountCircle sx={{ mr: { sm: 1 } }} />
-                <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' }, textTransform: 'none' }}>
-                  {user.name || user.user_id || 'User'}
-                </Typography>
+              <Button onClick={handleMenu} color="inherit" sx={{ minWidth: 'auto', p: { xs: 0.5, sm: 1 }, textTransform: 'none' }}>
+                <AccountCircle sx={{ mr: 0.5, color: '#1e293b' }} />
+                <Box sx={{ textAlign: 'left' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', fontSize: { xs: '0.75rem', sm: '0.875rem' }, lineHeight: 1.2 }}>
+                    {user.name || user.fullName || user.user_id || 'User'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 'bold', fontSize: { xs: '0.65rem', sm: '0.75rem' }, display: 'block' }}>
+                    {user.role === 'SUPER_ADMIN' ? 'Super Admin' : (user.role === 'STORE_INCHARGE' ? 'Store Incharge' : (user.role === 'STORE_USER' ? 'Store User' : 'Admin'))}
+                  </Typography>
+                </Box>
               </Button>
               <Menu
                 id="menu-appbar"

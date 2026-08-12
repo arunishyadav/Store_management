@@ -112,11 +112,11 @@ const Materials = () => {
             : true;
 
         const sortedArrivals = filteredMatEntries
-            .filter(e => e.arrivalDate)
-            .sort((a, b) => new Date(b.arrivalDate) - new Date(a.arrivalDate)); // NEWEST first for that date
+            .filter(e => e.arrivalDate && parseFloat(e.arrivalQuantity || 0) > 0)
+            .sort((a, b) => new Date(b.arrivalDate) - new Date(a.arrivalDate));
             
-        const latestEntry = sortedArrivals.length > 0 ? sortedArrivals[0] : (matEntries[0] || null);
-        const arrivalDateStr = latestEntry && latestEntry.arrivalDate ? new Date(latestEntry.arrivalDate).toLocaleDateString() : 'N/A';
+        const latestEntry = sortedArrivals.length > 0 ? sortedArrivals[0] : null;
+        const arrivalDateStr = latestEntry && latestEntry.arrivalDate ? String(latestEntry.arrivalDate).substring(0, 10) : 'N/A';
         const arrivalTimeStr = latestEntry && latestEntry.arrivalTime ? latestEntry.arrivalTime : '';
         const arrivalDateTime = arrivalDateStr !== 'N/A' ? `${arrivalDateStr} ${arrivalTimeStr}`.trim() : 'N/A';
         const laneWalaName = latestEntry ? (latestEntry.broughtBy || 'N/A') : 'N/A';

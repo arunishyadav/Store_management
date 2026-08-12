@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, Button, Paper, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Alert, Autocomplete } from '@mui/material';
+import { Box, Typography, Button, Paper, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Alert, Card, CardContent, Chip, useMediaQuery, useTheme } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
+import { Person as PersonIcon, Edit as EditIcon, Lock as LockIcon, Email as EmailIcon, LocationOn as LocationIcon } from '@mui/icons-material';
 import useAuthStore from '../store/authStore';
 import api from '../services/api';
 
 export default function UserManagement() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [users, setUsers] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +31,6 @@ export default function UserManagement() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // The backend now returns all users for SUPER_ADMIN when locationId is omitted.
       const userRes = await api.get(`/api/v1/users`);
       setUsers(userRes.data);
     } catch (err) {
@@ -44,7 +46,7 @@ export default function UserManagement() {
       setSelectedUser(user);
       setUserForm({
         userId: user.userId,
-        password: user.password || '', // Visible password comes from backend DTO now
+        password: user.password || '',
         email: user.email || '',
         fullName: user.fullName,
         role: user.role,
@@ -78,7 +80,7 @@ export default function UserManagement() {
     { field: 'userId', headerName: 'User ID', width: 150 },
     { field: 'fullName', headerName: 'Full Name', width: 150 },
     { field: 'email', headerName: 'Email', width: 180 },
-    { field: 'password', headerName: 'Password', width: 120 }, // Added Password column
+    { field: 'password', headerName: 'Password', width: 120 },
     { 
       field: 'role', 
       headerName: 'Role', 
@@ -113,21 +115,80 @@ export default function UserManagement() {
   }
 
   return (
-    <Box sx={{ height: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 } }}>
-      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, mb: 2, gap: 2 }}>
-        <Typography variant="h4" fontWeight="bold" sx={{ px: { xs: 2, sm: 0 }, fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>User Management (Global)</Typography>
-        <Box sx={{ px: { xs: 2, sm: 0 } }}>
-          <Button variant="contained" color="primary" onClick={() => handleOpenDialog()}>
-            Add User
-          </Button>
-        </Box>
+    <Box sx={{ minHeight: 'calc(100vh - 100px)', display: 'flex', flexDirection: 'column', p: { xs: 1.5, sm: 2 } }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'row' }, justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 2 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ fontSize: { xs: '1.25rem', sm: '2.125rem' } }}>User Management (Global)</Typography>
+        <Button variant="contained" color="primary" onClick={() => handleOpenDialog()} sx={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}>
+          + Add User
+        </Button>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mx: { xs: 2, sm: 0 }, mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: 3, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Paper sx={{ width: '100%', flexGrow: 1, borderRadius: 3, display: 'flex', flexDirection: 'column', overflow: 'hidden', p: isMobile ? 1.5 : 0, backgroundColor: isMobile ? 'transparent' : '#fff', boxShadow: isMobile ? 'none' : 1 }}>
         {loading ? (
-          <Box display="flex" justifyContent="center" alignItems="center" height="100%"><CircularProgress /></Box>
+          <Box display="flex" justifyContent="center" alignItems="center" height="200px"><CircularProgress /></Box>
+        ) : isMobile ? (
+          /* Mobile View: Clean Responsive Cards */
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pb: 4 }}>
+            {users.map((u) => (
+              <Card key={u.id} variant="outlined" sx={{ borderRadius: 2.5, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderColor: '#e2e8f0' }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <PersonIcon sx={{ color: 'primary.main', fontSize: '1.5rem' }} />
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', lineHeight: 1.2, color: '#0f172a' }}>
+                          {u.fullName || 'User'}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 'medium' }}>
+                          ID: {u.userId}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Chip 
+                      label={u.role === 'SUPER_ADMIN' ? 'Super Admin' : (u.role === 'STORE_INCHARGE' ? 'Store Incharge' : 'Viewer')} 
+                      color={u.role === 'SUPER_ADMIN' ? 'primary' : (u.role === 'STORE_INCHARGE' ? 'success' : 'default')}
+                      size="small"
+                      sx={{ fontWeight: 'bold', fontSize: '0.7rem' }}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, my: 1.5, pl: 0.5, borderLeft: '3px solid #cbd5e1' }}>
+                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#334155', fontSize: '0.825rem' }}>
+                      <EmailIcon sx={{ fontSize: '1rem', color: '#94a3b8' }} /> {u.email || 'N/A'}
+                    </Typography>
+                    {u.password && (
+                      <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#334155', fontSize: '0.825rem' }}>
+                        <LockIcon sx={{ fontSize: '1rem', color: '#94a3b8' }} /> Password: {u.password}
+                      </Typography>
+                    )}
+                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#334155', fontSize: '0.825rem' }}>
+                      <LocationIcon sx={{ fontSize: '1rem', color: '#94a3b8' }} /> State: {u.locationName || 'Global'}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 1, borderTop: '1px solid #f1f5f9' }}>
+                    <Chip 
+                      label={u.active ? 'Active' : 'Inactive'} 
+                      color={u.active ? 'success' : 'error'} 
+                      variant="outlined" 
+                      size="small"
+                    />
+                    <Button 
+                      size="small" 
+                      variant="outlined" 
+                      startIcon={<EditIcon />} 
+                      onClick={() => handleOpenDialog(u)}
+                      sx={{ fontWeight: 'bold' }}
+                    >
+                      Edit User
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
         ) : (
           <Box sx={{ flexGrow: 1, width: '100%' }}>
             <DataGrid rows={users} columns={columns} density="comfortable" sx={{ border: 'none' }} />

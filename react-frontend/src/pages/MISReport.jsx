@@ -585,49 +585,98 @@ const MISReport = () => {
                          pagination: { paginationModel: { page: 0, pageSize: 25 } },
                       }}
                       pageSizeOptions={[10, 25, 50, 100]}
-                      disableRowSelectionOnClick
-                      sx={{ border: 'none' }}
-                    />
-                 </Box>
+                  </Box>
 
-                 {/* Mobile Cards View (< md) */}
-                  <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', flexGrow: 1, overflowY: 'auto', p: 1.5, gap: 1.5 }}>
-                     <Typography variant="subtitle1" fontWeight="bold" color="primary">
+                  {/* Mobile Cards View (< md) */}
+                  <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 2, p: 1.5, pb: 6 }}>
+                     <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a', mb: 0.5 }}>
                         Transaction Log History
                      </Typography>
                      {filteredEntries.map((e) => (
-                        <Card key={e.id} variant="outlined" sx={{ p: 2, borderRadius: 2.5, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', borderColor: '#e2e8f0' }}>
-                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1, gap: 1 }}>
+                        <Card 
+                          key={e.id} 
+                          variant="outlined" 
+                          sx={{ 
+                            borderRadius: 3, 
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)', 
+                            borderColor: '#cbd5e1', 
+                            backgroundColor: '#ffffff',
+                            overflow: 'hidden'
+                          }}
+                        >
+                           {/* Card Header: Code, Category / Name & Status Badge */}
+                           <Box sx={{ p: 2, backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
                               <Box>
-                                 <Typography variant="subtitle2" fontWeight="bold" sx={{ color: '#0f172a', lineHeight: 1.3 }}>
+                                 <Typography variant="subtitle1" fontWeight="bold" sx={{ color: 'primary.main', fontSize: '1rem', lineHeight: 1.2 }}>
                                     {e.materialCode}
                                  </Typography>
-                                 <Typography variant="body2" sx={{ color: '#334155', fontWeight: 'medium' }}>
-                                    {e.materialName}
+                                 <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1e293b', mt: 0.3 }}>
+                                    {e.materialName || 'Product'}
                                  </Typography>
                               </Box>
                               <Chip 
-                                label={parseFloat(e.outgoingQuantity || 0) > 0 ? `Out: -${e.outgoingQuantity}` : `Arr: +${e.arrivalQuantity || 0}`}
+                                label={parseFloat(e.outgoingQuantity || 0) > 0 ? `OUT: -${e.outgoingQuantity}` : `ARR: +${e.arrivalQuantity || 0}`}
                                 color={parseFloat(e.outgoingQuantity || 0) > 0 ? "error" : "success"}
                                 size="small"
-                                sx={{ fontWeight: 'bold' }}
+                                sx={{ fontWeight: 'bold', fontSize: '0.75rem', borderRadius: 1.5, px: 0.5 }}
                               />
                            </Box>
 
-                           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, my: 1.5, p: 1.2, backgroundColor: '#f8fafc', borderRadius: 1.5 }}>
-                              <Box>
-                                 <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>Date & Time:</Typography>
-                                 <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.8rem' }}>
-                                    {e.issueDate || e.arrivalDate || 'N/A'} {e.arrivalTime ? `(${e.arrivalTime})` : ''}
-                                 </Typography>
-                              </Box>
-                              <Box>
-                                 <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>Issued By / Lane Wala:</Typography>
-                                 <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#1e293b', fontSize: '0.8rem' }}>
-                                    {e.issuedBy || e.broughtBy || 'N/A'}
-                                 </Typography>
-                              </Box>
-                           </Box>
+                           {/* Card Body Grid Details */}
+                           <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                              <Grid container spacing={1.5} sx={{ fontSize: '0.85rem' }}>
+                                 <Grid item xs={6}>
+                                    <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 'bold', display: 'block' }}>Store Arrival Date:</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#0f172a' }}>
+                                       {e.arrivalDate ? String(e.arrivalDate).substring(0, 10) : 'N/A'} {e.arrivalTime ? `(${e.arrivalTime})` : ''}
+                                    </Typography>
+                                 </Grid>
+
+                                 <Grid item xs={6}>
+                                    <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 'bold', display: 'block' }}>Issue Date:</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#0f172a' }}>
+                                       {e.issueDate ? String(e.issueDate).substring(0, 10) : 'N/A'}
+                                    </Typography>
+                                 </Grid>
+
+                                 <Grid item xs={6}>
+                                    <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 'bold', display: 'block' }}>Lane Wala (Brought By):</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 'medium', color: '#334155' }}>
+                                       {e.broughtBy || 'N/A'}
+                                    </Typography>
+                                 </Grid>
+
+                                 <Grid item xs={6}>
+                                    <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 'bold', display: 'block' }}>Store Incharge Name:</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 'medium', color: '#334155' }}>
+                                       {e.storeInchargeName || 'N/A'}
+                                    </Typography>
+                                 </Grid>
+
+                                 <Grid item xs={6}>
+                                    <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 'bold', display: 'block' }}>Issued By:</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 'medium', color: '#334155' }}>
+                                       {e.issuedBy || 'N/A'}
+                                    </Typography>
+                                 </Grid>
+
+                                 <Grid item xs={6}>
+                                    <Typography variant="caption" sx={{ color: '#64748b', fontWeight: 'bold', display: 'block' }}>Bill Number:</Typography>
+                                    <Typography variant="body2" sx={{ fontWeight: 'medium', color: '#334155' }}>
+                                       {e.billNumber || 'N/A'}
+                                    </Typography>
+                                 </Grid>
+                              </Grid>
+
+                              {/* Optional Physical Attributes (Length / ID / KG) */}
+                              {(e.productLength || e.innerDiameter || e.kg) && (
+                                 <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px dashed #e2e8f0', display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                                    {e.productLength && <Typography variant="caption" sx={{ color: '#475569' }}>Len: <strong>{e.productLength}</strong></Typography>}
+                                    {e.innerDiameter && <Typography variant="caption" sx={{ color: '#475569' }}>ID: <strong>{e.innerDiameter}</strong></Typography>}
+                                    {e.kg && <Typography variant="caption" sx={{ color: '#475569' }}>KG: <strong>{e.kg}</strong></Typography>}
+                                 </Box>
+                              )}
+                           </CardContent>
                         </Card>
                      ))}
                   </Box>

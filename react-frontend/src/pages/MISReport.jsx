@@ -585,6 +585,9 @@ const MISReport = () => {
                          pagination: { paginationModel: { page: 0, pageSize: 25 } },
                       }}
                       pageSizeOptions={[10, 25, 50, 100]}
+                      disableRowSelectionOnClick
+                      sx={{ border: 'none' }}
+                     />
                   </Box>
 
                   {/* Mobile Cards View (< md) */}

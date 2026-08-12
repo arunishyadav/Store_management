@@ -187,18 +187,10 @@ function AutocompleteEditCell(props) {
     }
 
     if (targetEntry) {
-       const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'storeInchargeName', 'productLength', 'innerDiameter', 'kg'];
+       const fieldsToCopy = ['productLength', 'innerDiameter', 'kg'];
        fieldsToCopy.forEach(f => {
           if (targetEntry[f] !== undefined && targetEntry[f] !== null) {
               let valToSet = targetEntry[f];
-              if (f === 'arrivalDate' && typeof valToSet === 'string') {
-                  const parts = valToSet.split('-');
-                  if (parts.length === 3) {
-                      valToSet = new Date(parts[0], parts[1] - 1, parts[2]);
-                  } else {
-                      valToSet = new Date(valToSet);
-                  }
-              }
               apiRef.current.setEditCellValue({ id, field: f, value: valToSet });
               updateObj[f] = valToSet;
           }
@@ -426,32 +418,10 @@ export default function StockLedger() {
       
       globalAllStockEntries = mapped;
 
-      // Match master materials by materialCode so all store items appear in All Data
-      const existingMatCodes = new Set(
-        mapped.map(r => (r.materialCode ? String(r.materialCode).trim().toLowerCase() : null)).filter(Boolean)
-      );
-
-      const masterOnlyRows = matRes.data
-        .filter(m => m.materialCode && !existingMatCodes.has(String(m.materialCode).trim().toLowerCase()))
-        .map(m => ({
-           id: `mat-${m.id}`,
-           materialId: m.id,
-           materialCode: m.materialCode,
-           materialName: m.name,
-           arrivalQuantity: 0,
-           outgoingQuantity: 0,
-           arrivalDate: m.createdAt ? String(m.createdAt).substring(0, 10) : todayStr,
-           broughtBy: 'Store Initial Stock',
-           issuedBy: 'N/A'
-        }));
-
-      const formattedRows = [
-        ...mapped.map(r => ({
-           ...r,
-           issuedBy: r.issuedBy === 'INITIAL_STOCK' ? 'Store Initial Stock' : (r.issuedBy || 'N/A')
-        })),
-        ...masterOnlyRows
-      ];
+      const formattedRows = mapped.map(r => ({
+         ...r,
+         issuedBy: r.issuedBy === 'INITIAL_STOCK' ? 'Store Initial Stock' : (r.issuedBy || 'N/A')
+      }));
       
       setRows(formattedRows);
 
@@ -1266,11 +1236,6 @@ export default function StockLedger() {
                       };
 
                       if (targetEntry) {
-                        updated.arrivalQuantity = targetEntry.arrivalQuantity || prev?.arrivalQuantity || '';
-                        updated.arrivalDate = targetEntry.arrivalDate ? String(targetEntry.arrivalDate).substring(0, 10) : (dateFilter || todayStr);
-                        updated.arrivalTime = targetEntry.arrivalTime || prev?.arrivalTime || '';
-                        updated.broughtBy = targetEntry.broughtBy || prev?.broughtBy || '';
-                        updated.storeInchargeName = targetEntry.storeInchargeName || prev?.storeInchargeName || '';
                         updated.productLength = targetEntry.productLength || prev?.productLength || '';
                         updated.innerDiameter = targetEntry.innerDiameter || prev?.innerDiameter || '';
                         updated.kg = targetEntry.kg || prev?.kg || '';

@@ -176,7 +176,23 @@ function AutocompleteEditCell(props) {
 
     const selectedCode = typeof newValue === 'string' ? newValue : newValue.materialCode;
     const selectedName = typeof newValue === 'object' && newValue.materialName ? newValue.materialName : '';
-    const targetEntry = typeof newValue === 'object' ? newValue.entry : null;
+    let targetEntry = typeof newValue === 'object' ? newValue.entry : null;
+
+    if (!targetEntry || !targetEntry.arrivalQuantity) {
+      const arrivalEntry = (globalAllStockEntries || []).find(e => 
+        e.materialCode && 
+        String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase() && 
+        parseFloat(e.arrivalQuantity || 0) > 0
+      );
+      if (arrivalEntry) {
+        targetEntry = arrivalEntry;
+      } else if (!targetEntry) {
+        targetEntry = (globalAllStockEntries || []).find(e => 
+          e.materialCode && 
+          String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase()
+        );
+      }
+    }
 
     apiRef.current.setEditCellValue({ id, field, value: selectedCode });
     
@@ -187,7 +203,7 @@ function AutocompleteEditCell(props) {
     }
 
     if (targetEntry) {
-       const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'productLength', 'innerDiameter', 'kg'];
+       const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'storeInchargeName', 'productLength', 'innerDiameter', 'kg'];
        fieldsToCopy.forEach(f => {
           if (targetEntry[f] !== undefined && targetEntry[f] !== null) {
               let valToSet = targetEntry[f];
@@ -1236,19 +1252,36 @@ export default function StockLedger() {
                   }
 
                   if (selectedCode) {
+                    if (!targetEntry || !targetEntry.arrivalQuantity) {
+                      const arrivalEntry = (globalAllStockEntries || []).find(e => 
+                        e.materialCode && 
+                        String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase() && 
+                        parseFloat(e.arrivalQuantity || 0) > 0
+                      );
+                      if (arrivalEntry) {
+                        targetEntry = arrivalEntry;
+                      } else if (!targetEntry) {
+                        targetEntry = (globalAllStockEntries || []).find(e => 
+                          e.materialCode && 
+                          String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase()
+                        );
+                      }
+                    }
+
                     setMobileEditingRow(prev => {
                       const updated = {
                         ...prev,
                         materialCode: selectedCode,
-                        materialName: selectedName || prev?.materialName || ''
+                        materialName: selectedName || targetEntry?.materialName || prev?.materialName || ''
                       };
 
                       if (targetEntry) {
+                        updated.billNumber = targetEntry.billNumber || prev?.billNumber || '';
                         updated.arrivalQuantity = targetEntry.arrivalQuantity || prev?.arrivalQuantity || '';
                         updated.arrivalDate = targetEntry.arrivalDate ? String(targetEntry.arrivalDate).substring(0, 10) : (dateFilter || todayStr);
                         updated.arrivalTime = targetEntry.arrivalTime || prev?.arrivalTime || '';
                         updated.broughtBy = targetEntry.broughtBy || prev?.broughtBy || '';
-                        updated.storeInchargeName = prev?.storeInchargeName || '';
+                        updated.storeInchargeName = targetEntry.storeInchargeName || prev?.storeInchargeName || '';
                         updated.productLength = targetEntry.productLength || prev?.productLength || '';
                         updated.innerDiameter = targetEntry.innerDiameter || prev?.innerDiameter || '';
                         updated.kg = targetEntry.kg || prev?.kg || '';

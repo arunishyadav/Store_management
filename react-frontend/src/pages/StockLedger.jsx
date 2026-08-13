@@ -187,10 +187,18 @@ function AutocompleteEditCell(props) {
     }
 
     if (targetEntry) {
-       const fieldsToCopy = ['productLength', 'innerDiameter', 'kg'];
+       const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'storeInchargeName', 'productLength', 'innerDiameter', 'kg'];
        fieldsToCopy.forEach(f => {
           if (targetEntry[f] !== undefined && targetEntry[f] !== null) {
               let valToSet = targetEntry[f];
+              if (f === 'arrivalDate' && typeof valToSet === 'string') {
+                  const parts = valToSet.split('-');
+                  if (parts.length === 3) {
+                      valToSet = new Date(parts[0], parts[1] - 1, parts[2]);
+                  } else {
+                      valToSet = new Date(valToSet);
+                  }
+              }
               apiRef.current.setEditCellValue({ id, field: f, value: valToSet });
               updateObj[f] = valToSet;
           }

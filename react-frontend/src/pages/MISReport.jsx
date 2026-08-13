@@ -286,7 +286,7 @@ const MISReport = () => {
   ];
 
   return (
-    <Box sx={{ height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 100px)' }, display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box' }}>
+    <Box sx={{ minHeight: 'calc(100vh - 100px)', height: 'auto', display: 'flex', flexDirection: 'column', p: { xs: 0, sm: 1, md: 2 }, maxWidth: '100vw', boxSizing: 'border-box', pb: { xs: 10, md: 2 } }}>
       {/* Header Bar */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: { xs: 1, md: 2 } }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'stretch', sm: 'center' }, gap: 1.5 }}>
@@ -513,7 +513,7 @@ const MISReport = () => {
                    </Card>
                 </Grid>
                  <Grid item xs={12} sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', minHeight: 300 }}>
-                    <Paper sx={{ width: '100%', mt: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }} elevation={2}>
+                    <Paper sx={{ width: '100%', mt: 2, flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: { xs: 'visible', md: 'hidden' } }} elevation={2}>
                        {/* Desktop DataGrid */}
                        <Box sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1, width: '100%', minHeight: 0 }}>
                           <DataGrid
@@ -532,7 +532,7 @@ const MISReport = () => {
                        </Box>
 
                        {/* Mobile Cards View (< md) */}
-                       <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', flexGrow: 1, overflowY: 'auto', p: 1.5 }}>
+                       <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', flexGrow: 1, p: 1.5, pb: 12 }}>
                           <Typography variant="subtitle2" fontWeight="bold" color="primary" gutterBottom>
                              Closing Stock Breakdown
                           </Typography>
@@ -573,7 +573,7 @@ const MISReport = () => {
            )}
 
            {tabValue === 1 && (
-              <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 300 }} elevation={2}>
+              <Paper sx={{ flexGrow: 1, width: '100%', display: 'flex', flexDirection: 'column', overflow: { xs: 'visible', md: 'hidden' }, minHeight: 300 }} elevation={2}>
                  {/* Desktop DataGrid */}
                  <Box sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1, width: '100%', minHeight: 0 }}>
                     <DataGrid
@@ -591,7 +591,7 @@ const MISReport = () => {
                   </Box>
 
                   {/* Mobile Cards View (< md) */}
-                  <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 2, p: 1.5, pb: 6 }}>
+                  <Box sx={{ display: { xs: 'flex', md: 'none' }, flexDirection: 'column', gap: 2, p: 1.5, pb: 12 }}>
                      <Typography variant="h6" fontWeight="bold" sx={{ color: '#0f172a', mb: 0.5 }}>
                         Transaction Log History
                      </Typography>

@@ -194,11 +194,19 @@ function AutocompleteEditCell(props) {
       }
     }
 
-    apiRef.current.setEditCellValue({ id, field, value: selectedCode });
+    const safeSet = (fieldName, fieldValue) => {
+      try {
+        apiRef.current.setEditCellValue({ id, field: fieldName, value: fieldValue });
+      } catch (err) {
+        console.warn(`Could not set field ${fieldName}:`, err);
+      }
+    };
+
+    safeSet(field, selectedCode);
     
     let updateObj = { id, materialCode: selectedCode };
     if (selectedName) {
-      apiRef.current.setEditCellValue({ id, field: 'materialName', value: selectedName });
+      safeSet('materialName', selectedName);
       updateObj.materialName = selectedName;
     }
 
@@ -215,19 +223,25 @@ function AutocompleteEditCell(props) {
                       valToSet = new Date(valToSet);
                   }
               }
-              apiRef.current.setEditCellValue({ id, field: f, value: valToSet });
+              safeSet(f, valToSet);
               updateObj[f] = valToSet;
           }
        });
     } else {
        const mat = materials.find(m => m.materialCode.toLowerCase() === selectedCode.toLowerCase());
        if (mat && !selectedName) {
-           apiRef.current.setEditCellValue({ id, field: 'materialName', value: mat.name });
+           safeSet('materialName', mat.name);
            updateObj.materialName = mat.name;
        }
     }
     
-    apiRef.current.updateRows([updateObj]);
+    try {
+      if (apiRef.current.getRow(id)) {
+        apiRef.current.updateRows([updateObj]);
+      }
+    } catch (e) {
+      console.warn("DataGrid updateRows skipped:", e);
+    }
 
     const dummyRow = { id, materialCode: selectedCode, isNew: true, outgoingQuantity: 0, arrivalDate: updateObj.arrivalDate || '' };
     const stockState = calculateStockState(dummyRow, globalAllStockEntries);

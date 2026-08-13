@@ -187,7 +187,7 @@ function AutocompleteEditCell(props) {
     }
 
     if (targetEntry) {
-       const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'storeInchargeName', 'productLength', 'innerDiameter', 'kg'];
+       const fieldsToCopy = ['billNumber', 'arrivalQuantity', 'arrivalDate', 'arrivalTime', 'broughtBy', 'productLength', 'innerDiameter', 'kg'];
        fieldsToCopy.forEach(f => {
           if (targetEntry[f] !== undefined && targetEntry[f] !== null) {
               let valToSet = targetEntry[f];
@@ -1248,7 +1248,7 @@ export default function StockLedger() {
                         updated.arrivalDate = targetEntry.arrivalDate ? String(targetEntry.arrivalDate).substring(0, 10) : (dateFilter || todayStr);
                         updated.arrivalTime = targetEntry.arrivalTime || prev?.arrivalTime || '';
                         updated.broughtBy = targetEntry.broughtBy || prev?.broughtBy || '';
-                        updated.storeInchargeName = targetEntry.storeInchargeName || prev?.storeInchargeName || '';
+                        updated.storeInchargeName = prev?.storeInchargeName || '';
                         updated.productLength = targetEntry.productLength || prev?.productLength || '';
                         updated.innerDiameter = targetEntry.innerDiameter || prev?.innerDiameter || '';
                         updated.kg = targetEntry.kg || prev?.kg || '';

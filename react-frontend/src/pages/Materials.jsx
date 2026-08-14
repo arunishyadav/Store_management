@@ -21,6 +21,7 @@ const Materials = () => {
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [open, setOpen] = useState(false);
+  const [rawStockEntries, setRawStockEntries] = useState([]);
   const [newMat, setNewMat] = useState({ 
     name: '', code: '', category: '', 
     arrivalQuantity: '', arrivalDate: '', arrivalTime: '', broughtBy: '' 
@@ -42,6 +43,7 @@ const Materials = () => {
       
       const materialsData = matRes.data;
       const entries = stockRes.data;
+      setRawStockEntries(entries);
 
       const uniqueMaterialsMap = {};
       materialsData.forEach(mat => {
@@ -88,8 +90,9 @@ const Materials = () => {
 
         const totalArrival = calculateGroupedArrival(matEntries);
         const totalOutgoing = matEntries.reduce((sum, e) => sum + parseFloat(e.outgoingQuantity || 0), 0);
-        const nowQuantity = totalArrival - totalOutgoing; // STORE BALANCE (e.g. 7)
-        const availableInStore = nowQuantity > 0 ? 'YES' : 'NO';
+        const rawNowQuantity = totalArrival - totalOutgoing;
+        const nowQuantity = Math.max(0, rawNowQuantity); // Never show negative numbers on screen
+        const availableInStore = rawNowQuantity > 0 ? 'YES' : 'NO';
         
         // Filter entries for the SELECTED DATE (or date range)
         let filteredMatEntries = matEntries;
@@ -785,29 +788,46 @@ const Materials = () => {
                   )}
                   value={newMat.code}
                   onChange={(event, newValue) => {
-                      if (typeof newValue === 'string') {
-                          setNewMat(prev => ({ ...prev, code: newValue }));
-                      } else if (newValue && newValue.code) {
-                          setNewMat(prev => ({
-                              ...prev,
-                              code: newValue.code,
-                              name: newValue.name,
-                              category: newValue.category || prev.category
-                          }));
-                      } else {
-                          setNewMat(prev => ({ ...prev, code: '' }));
-                      }
+                      const selectedCode = typeof newValue === 'string' ? newValue : newValue?.code || '';
+                      const selectedName = typeof newValue === 'object' && newValue?.name ? newValue.name : '';
+                      const selectedCategory = typeof newValue === 'object' && newValue?.category ? newValue.category : '';
+                      
+                      const arrEntry = (rawStockEntries || []).find(e => 
+                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase() && parseFloat(e.arrivalQuantity || 0) > 0
+                      ) || (rawStockEntries || []).find(e => 
+                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase()
+                      );
+
+                      setNewMat(prev => ({
+                        ...prev,
+                        code: selectedCode,
+                        name: selectedName || prev.name,
+                        category: selectedCategory || prev.category,
+                        arrivalQuantity: arrEntry?.arrivalQuantity || prev.arrivalQuantity || '',
+                        arrivalDate: arrEntry?.arrivalDate ? String(arrEntry.arrivalDate).substring(0, 10) : (prev.arrivalDate || todayStr),
+                        arrivalTime: arrEntry?.arrivalTime || prev.arrivalTime || '',
+                        broughtBy: arrEntry?.broughtBy || prev.broughtBy || ''
+                      }));
                   }}
                   onInputChange={(event, newInputValue) => {
-                      setNewMat(prev => ({ ...prev, code: newInputValue }));
-                      const match = allUniqueMaterials.find(r => r.materialCode.toLowerCase() === (newInputValue || '').trim().toLowerCase());
-                      if (match) {
-                          setNewMat(prev => ({
-                              ...prev,
-                              name: match.name,
-                              category: match.category || prev.category
-                          }));
-                      }
+                      const codeVal = newInputValue || '';
+                      const match = allUniqueMaterials.find(r => r.materialCode.toLowerCase() === codeVal.trim().toLowerCase());
+                      const arrEntry = (rawStockEntries || []).find(e => 
+                        e.materialCode && String(e.materialCode).trim().toLowerCase() === codeVal.trim().toLowerCase() && parseFloat(e.arrivalQuantity || 0) > 0
+                      ) || (rawStockEntries || []).find(e => 
+                        e.materialCode && String(e.materialCode).trim().toLowerCase() === codeVal.trim().toLowerCase()
+                      );
+
+                      setNewMat(prev => ({
+                        ...prev,
+                        code: codeVal,
+                        name: match ? match.name : prev.name,
+                        category: match ? (match.category || prev.category) : prev.category,
+                        arrivalQuantity: arrEntry?.arrivalQuantity || prev.arrivalQuantity || '',
+                        arrivalDate: arrEntry?.arrivalDate ? String(arrEntry.arrivalDate).substring(0, 10) : (prev.arrivalDate || todayStr),
+                        arrivalTime: arrEntry?.arrivalTime || prev.arrivalTime || '',
+                        broughtBy: arrEntry?.broughtBy || prev.broughtBy || ''
+                      }));
                   }}
                   renderInput={(params) => (
                       <TextField {...params} autoFocus margin="dense" label="Item Code (e.g. MAT-123)" fullWidth variant="outlined" />
@@ -826,29 +846,46 @@ const Materials = () => {
                   )}
                   value={newMat.name}
                   onChange={(event, newValue) => {
-                      if (typeof newValue === 'string') {
-                          setNewMat(prev => ({ ...prev, name: newValue }));
-                      } else if (newValue && newValue.name) {
-                          setNewMat(prev => ({
-                              ...prev,
-                              code: newValue.code,
-                              name: newValue.name,
-                              category: newValue.category || prev.category
-                          }));
-                      } else {
-                          setNewMat(prev => ({ ...prev, name: '' }));
-                      }
+                      const selectedName = typeof newValue === 'string' ? newValue : newValue?.name || '';
+                      const selectedCode = typeof newValue === 'object' && newValue?.code ? newValue.code : '';
+                      const selectedCategory = typeof newValue === 'object' && newValue?.category ? newValue.category : '';
+                      
+                      const arrEntry = (rawStockEntries || []).find(e => 
+                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase() && parseFloat(e.arrivalQuantity || 0) > 0
+                      ) || (rawStockEntries || []).find(e => 
+                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase()
+                      );
+
+                      setNewMat(prev => ({
+                        ...prev,
+                        code: selectedCode || prev.code,
+                        name: selectedName,
+                        category: selectedCategory || prev.category,
+                        arrivalQuantity: arrEntry?.arrivalQuantity || prev.arrivalQuantity || '',
+                        arrivalDate: arrEntry?.arrivalDate ? String(arrEntry.arrivalDate).substring(0, 10) : (prev.arrivalDate || todayStr),
+                        arrivalTime: arrEntry?.arrivalTime || prev.arrivalTime || '',
+                        broughtBy: arrEntry?.broughtBy || prev.broughtBy || ''
+                      }));
                   }}
                   onInputChange={(event, newInputValue) => {
-                      setNewMat(prev => ({ ...prev, name: newInputValue }));
-                      const match = allUniqueMaterials.find(r => r.name.toLowerCase() === (newInputValue || '').trim().toLowerCase());
-                      if (match) {
-                          setNewMat(prev => ({
-                              ...prev,
-                              code: match.materialCode,
-                              category: match.category || prev.category
-                          }));
-                      }
+                      const nameVal = newInputValue || '';
+                      const match = allUniqueMaterials.find(r => r.name.toLowerCase() === nameVal.trim().toLowerCase());
+                      const arrEntry = match ? ((rawStockEntries || []).find(e => 
+                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(match.materialCode).trim().toLowerCase() && parseFloat(e.arrivalQuantity || 0) > 0
+                      ) || (rawStockEntries || []).find(e => 
+                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(match.materialCode).trim().toLowerCase()
+                      )) : null;
+
+                      setNewMat(prev => ({
+                        ...prev,
+                        name: nameVal,
+                        code: match ? match.materialCode : prev.code,
+                        category: match ? (match.category || prev.category) : prev.category,
+                        arrivalQuantity: arrEntry?.arrivalQuantity || prev.arrivalQuantity || '',
+                        arrivalDate: arrEntry?.arrivalDate ? String(arrEntry.arrivalDate).substring(0, 10) : (prev.arrivalDate || todayStr),
+                        arrivalTime: arrEntry?.arrivalTime || prev.arrivalTime || '',
+                        broughtBy: arrEntry?.broughtBy || prev.broughtBy || ''
+                      }));
                   }}
                   renderInput={(params) => (
                       <TextField {...params} margin="dense" label="Item Name" fullWidth variant="outlined" />

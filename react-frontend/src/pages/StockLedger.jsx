@@ -518,12 +518,13 @@ export default function StockLedger() {
     const out = parseFloat(newRow.outgoingQuantity || 0);
     updatedRow.totalAvailableQty = arr - out;
 
-    // Check stock balance before issuing
+    // Check stock balance before issuing (Out cannot exceed Available Stock)
     if (out > 0) {
         const stockState = calculateStockState({ ...updatedRow, outgoingQuantity: 0, isNew: true }, globalAllStockEntries);
-        const isNewToBackend = !globalAllStockEntries.some(r => r.id === newRow.id);
-        if (isNewToBackend && out > stockState.runningBalance && stockState.runningBalance >= 0) {
-            throw new Error(`Cannot issue ${out} pcs. Only ${stockState.runningBalance} pcs available in store!`);
+        const currentAvailable = Math.max(0, stockState.runningBalance);
+        if (out > currentAvailable) {
+            alert(`⚠️ Out of Stock Error!\nMaterial '${newRow.materialCode}' currently has only ${currentAvailable} pcs available in store, but you entered Outgoing Qty = ${out} pcs.\nMaterial stock cannot be issued beyond available stock!`);
+            throw new Error(`Out of Stock! Only ${currentAvailable} pcs available in store.`);
         }
     }
 
@@ -765,6 +766,18 @@ export default function StockLedger() {
 
   const handleMobileSave = async () => {
     if (!mobileEditingRow) return;
+    
+    // Check stock balance before issuing (Out cannot exceed Available Stock)
+    const outQty = parseFloat(mobileEditingRow.outgoingQuantity || 0);
+    if (outQty > 0) {
+      const stockState = calculateStockState({ ...mobileEditingRow, outgoingQuantity: 0, isNew: true }, globalAllStockEntries);
+      const currentAvailable = Math.max(0, stockState.runningBalance);
+      if (outQty > currentAvailable) {
+        alert(`⚠️ Out of Stock Error!\nMaterial '${mobileEditingRow.materialCode}' currently has only ${currentAvailable} pcs available in store, but you entered Outgoing Qty = ${outQty} pcs.\nMaterial stock cannot be issued beyond available stock!`);
+        return;
+      }
+    }
+
     try {
       let materialId = mobileEditingRow.materialId;
       if (!materialId && mobileEditingRow.materialCode) {

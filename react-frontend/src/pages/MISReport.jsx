@@ -70,22 +70,22 @@ const MISReport = () => {
   const reportData = useMemo(() => {
       if (!materials.length || !entries.length) return [];
       
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
+      const startStr = startDate || '1970-01-01';
+      const endStr = endDate || todayStr;
 
       const aggregatedData = {};
       
       const getNormalizedDate = (d) => {
-          if (!d) return 'nodate';
-          if (d instanceof Date) {
-              return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-          }
+          if (!d) return '';
           return String(d).substring(0, 10);
       };
 
       materials.forEach(mat => {
-          const matEntries = entries.filter(e => e.material?.id === mat.id);
+          const matCodeLower = String(mat.materialCode || '').trim().toLowerCase();
+          const matEntries = entries.filter(e => 
+              (e.material?.id && e.material.id === mat.id) ||
+              (e.materialCode && String(e.materialCode).trim().toLowerCase() === matCodeLower)
+          );
           
           let openingArrivalGroups = {};
           let inwardGroups = {};
@@ -93,30 +93,28 @@ const MISReport = () => {
           let issuedRange = 0;
 
           matEntries.forEach(e => {
-             const arrDate = getNormalizedDate(e.arrivalDate);
+             const arrDateStr = getNormalizedDate(e.arrivalDate);
              const arrTime = e.arrivalTime || 'notime';
              const arrQty = parseFloat(e.arrivalQuantity || 0);
-             const key = `${arrDate}_${arrTime}_${arrQty}`;
+             const key = `${arrDateStr}_${arrTime}_${arrQty}`;
              const outQty = parseFloat(e.outgoingQuantity || 0);
-             
-             const arrDateObj = e.arrivalDate ? new Date(e.arrivalDate) : new Date(0);
-             const issDateObj = e.issueDate ? new Date(e.issueDate) : (e.arrivalDate ? new Date(e.arrivalDate) : new Date(0));
+             const issDateStr = getNormalizedDate(e.issueDate || e.arrivalDate);
 
              // Opening Stock Logic (Before Start Date)
-             if (arrDateObj < start) {
+             if (arrDateStr && arrDateStr < startStr) {
                  if (!openingArrivalGroups[key] || arrQty > openingArrivalGroups[key]) {
                      openingArrivalGroups[key] = arrQty;
                  }
-             } else if (arrDateObj >= start && arrDateObj <= end) {
+             } else if (arrDateStr && arrDateStr >= startStr && arrDateStr <= endStr) {
                  // Inward Logic (During Range)
                  if (!inwardGroups[key] || arrQty > inwardGroups[key]) {
                      inwardGroups[key] = arrQty;
                  }
              }
              
-             if (issDateObj < start) {
+             if (issDateStr && issDateStr < startStr) {
                  openingOut += outQty;
-             } else if (issDateObj >= start && issDateObj <= end) {
+             } else if (issDateStr && issDateStr >= startStr && issDateStr <= endStr) {
                  issuedRange += outQty;
              }
           });
@@ -127,8 +125,10 @@ const MISReport = () => {
           let inwardRange = 0;
           Object.values(inwardGroups).forEach(val => inwardRange += val);
 
-          const openingStock = openingArr - openingOut;
-          const closingStock = openingStock + inwardRange - issuedRange;
+          const rawOpeningStock = openingArr - openingOut;
+          const openingStock = Math.max(0, rawOpeningStock);
+          const rawClosingStock = openingStock + inwardRange - issuedRange;
+          const closingStock = Math.max(0, rawClosingStock);
 
           if (aggregatedData[mat.materialCode]) {
               aggregatedData[mat.materialCode].openingStock += openingStock;
@@ -227,17 +227,15 @@ const MISReport = () => {
 
   // Entry Book Filtered Data (Transaction Log History)
   const filteredEntries = useMemo(() => {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
+      const startStr = startDate || '1970-01-01';
+      const endStr = endDate || todayStr;
       
       return entries.filter(e => {
-          const arrDate = e.arrivalDate ? new Date(e.arrivalDate) : null;
-          const issDate = e.issueDate ? new Date(e.issueDate) : null;
+          const arrDateStr = e.arrivalDate ? String(e.arrivalDate).substring(0, 10) : '';
+          const issDateStr = e.issueDate ? String(e.issueDate).substring(0, 10) : '';
+          const entryDateStr = issDateStr || arrDateStr;
           
-          const arrInRange = arrDate && arrDate >= start && arrDate <= end;
-          const issInRange = issDate && issDate >= start && issDate <= end;
-          const matchesDate = arrInRange || issInRange;
+          const matchesDate = entryDateStr >= startStr && entryDateStr <= endStr;
 
           let matchesSearch = true;
           if (mobileSearch && mobileSearch.trim() !== '') {

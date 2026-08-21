@@ -148,9 +148,15 @@ const MISReport = () => {
               };
           }
       });
-      return Object.values(aggregatedData).filter(item => 
-          item.openingStock !== 0 || item.inward !== 0 || item.issued !== 0 || item.closingStock !== 0
-      );
+
+      const hasDateFilter = Boolean(startDate || endDate);
+
+      return Object.values(aggregatedData).filter(item => {
+          if (hasDateFilter) {
+              return item.inward > 0 || item.issued > 0;
+          }
+          return item.openingStock !== 0 || item.inward !== 0 || item.issued !== 0 || item.closingStock !== 0;
+      });
   }, [materials, entries, startDate, endDate]);
 
   // Filtered Report Data by Availability & Mobile Search
@@ -316,11 +322,12 @@ const MISReport = () => {
                Print PDF
              </Button>
 
-             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-               <Button variant="outlined" size="small" onClick={() => setPresetDate(1)}>1 Mo</Button>
-               <Button variant="outlined" size="small" onClick={() => setPresetDate(6)}>6 Mo</Button>
-               <Button variant="outlined" size="small" onClick={() => setPresetDate(12)}>1 Yr</Button>
-             </Stack>
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                <Button variant="contained" color="primary" size="small" onClick={() => { setStartDate(''); setEndDate(''); }}>All Data</Button>
+                <Button variant="outlined" size="small" onClick={() => setPresetDate(1)}>1 Mo</Button>
+                <Button variant="outlined" size="small" onClick={() => setPresetDate(6)}>6 Mo</Button>
+                <Button variant="outlined" size="small" onClick={() => setPresetDate(12)}>1 Yr</Button>
+              </Stack>
              
              <Stack direction="row" spacing={1} alignItems="center">
                <TextField 

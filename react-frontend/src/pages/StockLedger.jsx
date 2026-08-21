@@ -90,26 +90,33 @@ function calculateStockState(row, allBackendRows) {
         totalArrivalQty += qty;
     });
 
-    let cumulativeOut = 0;
+    let totalOutgoingQty = 0;
+    materialRows.forEach(r => {
+        totalOutgoingQty += parseFloat(r.outgoingQuantity || 0);
+    });
 
+    const overallBalance = Math.max(0, totalArrivalQty - totalOutgoingQty);
+    const overallAvailable = overallBalance > 0 ? 'YES' : 'NO';
+
+    let stepCumulativeOut = 0;
     for (let i = 0; i < materialRows.length; i++) {
         const r = materialRows[i];
-        const outQty = parseFloat(r.outgoingQuantity || 0);
-        cumulativeOut += outQty;
+        stepCumulativeOut += parseFloat(r.outgoingQuantity || 0);
 
         if (r.id === row.id) {
-            const runningBalance = totalArrivalQty - cumulativeOut;
+            const stepBalance = Math.max(0, totalArrivalQty - stepCumulativeOut);
             return {
-                runningBalance: Math.max(0, runningBalance),
-                available: runningBalance > 0 ? 'YES' : 'NO'
+                runningBalance: stepBalance,
+                currentStoreBalance: overallBalance,
+                available: overallAvailable
             };
         }
     }
 
-    const overallBalance = totalArrivalQty - cumulativeOut;
     return {
-        runningBalance: Math.max(0, overallBalance),
-        available: overallBalance > 0 ? 'YES' : 'NO'
+        runningBalance: overallBalance,
+        currentStoreBalance: overallBalance,
+        available: overallAvailable
     };
 }
 
@@ -906,21 +913,26 @@ export default function StockLedger() {
   const handlePrintPDF = () => {
     const printData = filteredRows.map(r => {
       const state = calculateStockState(r, globalAllStockEntries);
+      const isArrival = parseFloat(r.arrivalQuantity || 0) > 0 && parseFloat(r.outgoingQuantity || 0) === 0;
       return {
-        bill: r.billNumber || 'N/A',
+        type: isArrival ? 'IN (Arrival)' : 'OUT (Issue)',
         code: r.materialCode || 'N/A',
         name: r.materialName || 'N/A',
-        arrivalQty: r.arrivalQuantity || 0,
-        arrivalDate: r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A',
-        broughtBy: r.broughtBy || 'N/A',
+        arrivalQty: isArrival ? (r.arrivalQuantity || 0) : '-',
+        arrivalDate: isArrival ? (r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A') : '-',
+        broughtBy: isArrival ? (r.broughtBy || 'N/A') : '-',
         status: state.available,
-        outQty: r.outgoingQuantity || 0,
-        issueDate: r.issueDate ? new Date(r.issueDate).toLocaleDateString() : 'N/A',
-        issuedBy: r.issuedBy || 'N/A',
-        balance: state.runningBalance
+        outQty: !isArrival ? (r.outgoingQuantity || 0) : '-',
+        outDate: !isArrival ? (r.issueDate ? new Date(r.issueDate).toLocaleDateString() : (r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A')) : '-',
+        issuedBy: !isArrival ? (r.issuedBy || 'N/A') : '-',
+        currentBalance: state.currentStoreBalance
       };
     });
-    printPDF(printData, `Entry Book Ledger (${availabilityFilter})`, [
+
+    const filterTitle = availabilityFilter === 'ALL' ? 'All Records' : (availabilityFilter === 'YES' ? 'IN STOCK Items' : 'OUT OF STOCK Items');
+
+    printPDF(printData, `Entry Book Ledger Report (${filterTitle})`, [
+      { field: 'type', headerName: 'Entry Type' },
       { field: 'code', headerName: 'Item Code' },
       { field: 'name', headerName: 'Material Name' },
       { field: 'arrivalQty', headerName: 'Arr Qty' },
@@ -928,8 +940,9 @@ export default function StockLedger() {
       { field: 'broughtBy', headerName: 'Brought By' },
       { field: 'status', headerName: 'Status' },
       { field: 'outQty', headerName: 'Out Qty' },
+      { field: 'outDate', headerName: 'Out Date' },
       { field: 'issuedBy', headerName: 'Issued By' },
-      { field: 'balance', headerName: 'Balance' }
+      { field: 'currentBalance', headerName: 'Current Stock' }
     ]);
   };
 

@@ -400,19 +400,22 @@ const Materials = () => {
       name: r.name || 'N/A',
       category: r.category || 'Hardware',
       arrivalQty: r.arrivalQuantity || 0,
-      nowQty: r.nowQuantity || 0,
+      nowQty: Math.max(0, r.nowQuantity || 0),
       status: (r.nowQuantity > 0) ? 'YES' : 'NO',
       date: r.arrivalDate ? new Date(r.arrivalDate).toLocaleDateString() : 'N/A',
       broughtBy: r.broughtBy || 'N/A'
     }));
-    printPDF(printData, `Materials Stock Report (${availabilityFilter})`, [
+
+    const filterTitle = availabilityFilter === 'ALL' ? 'All Materials' : (availabilityFilter === 'YES' ? 'IN STOCK Materials' : 'OUT OF STOCK Materials');
+
+    printPDF(printData, `Materials Master Summary Report (${filterTitle})`, [
       { field: 'code', headerName: 'Item Code' },
       { field: 'name', headerName: 'Material Name' },
       { field: 'category', headerName: 'Category' },
-      { field: 'arrivalQty', headerName: 'Total Arrival' },
-      { field: 'nowQty', headerName: 'Now Stock' },
-      { field: 'status', headerName: 'Available' },
-      { field: 'date', headerName: 'Arrival Date' },
+      { field: 'arrivalQty', headerName: 'Total Arrival Qty' },
+      { field: 'nowQty', headerName: 'Current Stock Balance' },
+      { field: 'status', headerName: 'Available Status' },
+      { field: 'date', headerName: 'Last Arrival Date' },
       { field: 'broughtBy', headerName: 'Brought By' }
     ]);
   };
@@ -789,44 +792,32 @@ const Materials = () => {
                   value={newMat.code}
                   onChange={(event, newValue) => {
                       const selectedCode = typeof newValue === 'string' ? newValue : newValue?.code || '';
-                      const selectedName = typeof newValue === 'object' && newValue?.name ? newValue.name : '';
-                      const selectedCategory = typeof newValue === 'object' && newValue?.category ? newValue.category : '';
-                      
-                      const arrEntry = (rawStockEntries || []).find(e => 
-                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase() && parseFloat(e.arrivalQuantity || 0) > 0
-                      ) || (rawStockEntries || []).find(e => 
-                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase()
-                      );
+                      const match = allUniqueMaterials.find(r => r.materialCode.toLowerCase() === String(selectedCode).trim().toLowerCase());
 
                       setNewMat(prev => ({
                         ...prev,
                         code: selectedCode,
-                        name: selectedName || prev.name,
-                        category: selectedCategory || prev.category,
-                        arrivalQuantity: arrEntry?.arrivalQuantity || prev.arrivalQuantity || '',
-                        arrivalDate: arrEntry?.arrivalDate ? String(arrEntry.arrivalDate).substring(0, 10) : (prev.arrivalDate || todayStr),
-                        arrivalTime: arrEntry?.arrivalTime || prev.arrivalTime || '',
-                        broughtBy: arrEntry?.broughtBy || prev.broughtBy || ''
+                        name: match ? match.name : (typeof newValue === 'object' && newValue?.name ? newValue.name : prev.name),
+                        category: match ? (match.category || prev.category) : (typeof newValue === 'object' && newValue?.category ? newValue.category : prev.category),
+                        arrivalQuantity: '',
+                        arrivalDate: todayStr,
+                        arrivalTime: '',
+                        broughtBy: ''
                       }));
                   }}
                   onInputChange={(event, newInputValue) => {
                       const codeVal = newInputValue || '';
                       const match = allUniqueMaterials.find(r => r.materialCode.toLowerCase() === codeVal.trim().toLowerCase());
-                      const arrEntry = (rawStockEntries || []).find(e => 
-                        e.materialCode && String(e.materialCode).trim().toLowerCase() === codeVal.trim().toLowerCase() && parseFloat(e.arrivalQuantity || 0) > 0
-                      ) || (rawStockEntries || []).find(e => 
-                        e.materialCode && String(e.materialCode).trim().toLowerCase() === codeVal.trim().toLowerCase()
-                      );
 
                       setNewMat(prev => ({
                         ...prev,
                         code: codeVal,
                         name: match ? match.name : prev.name,
                         category: match ? (match.category || prev.category) : prev.category,
-                        arrivalQuantity: arrEntry?.arrivalQuantity || prev.arrivalQuantity || '',
-                        arrivalDate: arrEntry?.arrivalDate ? String(arrEntry.arrivalDate).substring(0, 10) : (prev.arrivalDate || todayStr),
-                        arrivalTime: arrEntry?.arrivalTime || prev.arrivalTime || '',
-                        broughtBy: arrEntry?.broughtBy || prev.broughtBy || ''
+                        arrivalQuantity: match ? prev.arrivalQuantity : '',
+                        arrivalDate: prev.arrivalDate || todayStr,
+                        arrivalTime: match ? prev.arrivalTime : '',
+                        broughtBy: match ? prev.broughtBy : ''
                       }));
                   }}
                   renderInput={(params) => (
@@ -847,44 +838,32 @@ const Materials = () => {
                   value={newMat.name}
                   onChange={(event, newValue) => {
                       const selectedName = typeof newValue === 'string' ? newValue : newValue?.name || '';
-                      const selectedCode = typeof newValue === 'object' && newValue?.code ? newValue.code : '';
-                      const selectedCategory = typeof newValue === 'object' && newValue?.category ? newValue.category : '';
-                      
-                      const arrEntry = (rawStockEntries || []).find(e => 
-                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase() && parseFloat(e.arrivalQuantity || 0) > 0
-                      ) || (rawStockEntries || []).find(e => 
-                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(selectedCode).trim().toLowerCase()
-                      );
+                      const match = allUniqueMaterials.find(r => r.name.toLowerCase() === String(selectedName).trim().toLowerCase());
 
                       setNewMat(prev => ({
                         ...prev,
-                        code: selectedCode || prev.code,
+                        code: match ? match.materialCode : (typeof newValue === 'object' && newValue?.code ? newValue.code : prev.code),
                         name: selectedName,
-                        category: selectedCategory || prev.category,
-                        arrivalQuantity: arrEntry?.arrivalQuantity || prev.arrivalQuantity || '',
-                        arrivalDate: arrEntry?.arrivalDate ? String(arrEntry.arrivalDate).substring(0, 10) : (prev.arrivalDate || todayStr),
-                        arrivalTime: arrEntry?.arrivalTime || prev.arrivalTime || '',
-                        broughtBy: arrEntry?.broughtBy || prev.broughtBy || ''
+                        category: match ? (match.category || prev.category) : (typeof newValue === 'object' && newValue?.category ? newValue.category : prev.category),
+                        arrivalQuantity: '',
+                        arrivalDate: todayStr,
+                        arrivalTime: '',
+                        broughtBy: ''
                       }));
                   }}
                   onInputChange={(event, newInputValue) => {
                       const nameVal = newInputValue || '';
                       const match = allUniqueMaterials.find(r => r.name.toLowerCase() === nameVal.trim().toLowerCase());
-                      const arrEntry = match ? ((rawStockEntries || []).find(e => 
-                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(match.materialCode).trim().toLowerCase() && parseFloat(e.arrivalQuantity || 0) > 0
-                      ) || (rawStockEntries || []).find(e => 
-                        e.materialCode && String(e.materialCode).trim().toLowerCase() === String(match.materialCode).trim().toLowerCase()
-                      )) : null;
 
                       setNewMat(prev => ({
                         ...prev,
                         name: nameVal,
                         code: match ? match.materialCode : prev.code,
                         category: match ? (match.category || prev.category) : prev.category,
-                        arrivalQuantity: arrEntry?.arrivalQuantity || prev.arrivalQuantity || '',
-                        arrivalDate: arrEntry?.arrivalDate ? String(arrEntry.arrivalDate).substring(0, 10) : (prev.arrivalDate || todayStr),
-                        arrivalTime: arrEntry?.arrivalTime || prev.arrivalTime || '',
-                        broughtBy: arrEntry?.broughtBy || prev.broughtBy || ''
+                        arrivalQuantity: match ? prev.arrivalQuantity : '',
+                        arrivalDate: prev.arrivalDate || todayStr,
+                        arrivalTime: match ? prev.arrivalTime : '',
+                        broughtBy: match ? prev.broughtBy : ''
                       }));
                   }}
                   renderInput={(params) => (

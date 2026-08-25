@@ -46,7 +46,7 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/login", "/ws/**").permitAll()
+                .requestMatchers("/api/auth/**", "/ws/**", "/actuator/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/locations").permitAll()
                 .requestMatchers("/", "/index.html", "/assets/**", "/*.svg", "/*.ico", "/*.json", "/*.png").permitAll()
                 .requestMatchers("/login", "/entry-book", "/materials", "/mis-report", "/users", "/help").permitAll()

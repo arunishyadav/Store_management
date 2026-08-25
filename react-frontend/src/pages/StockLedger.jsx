@@ -833,37 +833,56 @@ export default function StockLedger() {
     }
   };
 
-  // Filter rows logic
-  const filteredRows = rows.filter(r => {
-    const stockState = calculateStockState(r, globalAllStockEntries);
-
-    let matchesAvailability = true;
-    if (availabilityFilter === 'YES') {
-      matchesAvailability = stockState.runningBalance > 0;
-    } else if (availabilityFilter === 'NO') {
-      matchesAvailability = stockState.runningBalance <= 0;
-    }
-
-    let matchesDate = true;
-    const entryDateStr = r.issueDate || r.arrivalDate || '';
-    const entryDate = entryDateStr ? String(entryDateStr).substring(0, 10) : '';
-
-    if (startDate && endDate) {
-      matchesDate = entryDate >= startDate && entryDate <= endDate;
-    } else if (dateFilter) {
-      const outQty = parseFloat(r.outgoingQuantity || 0);
-      if (outQty > 0 && r.issueDate) {
-        matchesDate = r.issueDate.startsWith(dateFilter);
-      } else if (r.arrivalDate) {
-        matchesDate = r.arrivalDate.startsWith(dateFilter);
-      } else {
-        matchesDate = false;
+  // Pre-compute stock balance for each material code to make search typing 100% instant (0ms lag)
+  const stockStateMap = useMemo(() => {
+    const map = {};
+    (globalAllStockEntries || []).forEach(r => {
+      if (!r.materialCode) return;
+      const code = String(r.materialCode).trim().toLowerCase();
+      if (!map[code]) {
+        map[code] = calculateStockState(r, globalAllStockEntries);
       }
-    }
+    });
+    return map;
+  }, [globalAllStockEntries]);
 
-    let matchesSearch = true;
-    if (searchQuery && searchQuery.trim() !== '') {
-      const q = searchQuery.trim().toLowerCase();
+  // Memoized Filtered Rows logic for 60 FPS smooth search typing
+  const filteredRows = useMemo(() => {
+    if (!rows || !rows.length) return [];
+    const q = (searchQuery || '').trim().toLowerCase();
+
+    return rows.filter(r => {
+      const codeKey = String(r.materialCode || '').trim().toLowerCase();
+      const stockState = stockStateMap[codeKey] || { runningBalance: 0, currentStoreBalance: 0, available: 'NO' };
+
+      let matchesAvailability = true;
+      if (availabilityFilter === 'YES') {
+        matchesAvailability = stockState.available === 'YES';
+      } else if (availabilityFilter === 'NO') {
+        matchesAvailability = stockState.available === 'NO';
+      }
+      if (!matchesAvailability) return false;
+
+      let matchesDate = true;
+      const entryDateStr = r.issueDate || r.arrivalDate || '';
+      const entryDate = entryDateStr ? String(entryDateStr).substring(0, 10) : '';
+
+      if (startDate && endDate) {
+        matchesDate = entryDate >= startDate && entryDate <= endDate;
+      } else if (dateFilter) {
+        const outQty = parseFloat(r.outgoingQuantity || 0);
+        if (outQty > 0 && r.issueDate) {
+          matchesDate = r.issueDate.startsWith(dateFilter);
+        } else if (r.arrivalDate) {
+          matchesDate = r.arrivalDate.startsWith(dateFilter);
+        } else {
+          matchesDate = false;
+        }
+      }
+      if (!matchesDate) return false;
+
+      if (!q) return true;
+
       const code = String(r.materialCode || '').toLowerCase();
       const name = String(r.materialName || '').toLowerCase();
       const bill = String(r.billNumber || '').toLowerCase();
@@ -878,15 +897,14 @@ export default function StockLedger() {
       const dia = String(r.innerDiameter || '').toLowerCase();
       const kgStr = String(r.kg || '').toLowerCase();
 
-      matchesSearch = (
+      return (
         code.includes(q) || name.includes(q) || bill.includes(q) ||
         issued.includes(q) || incharge.includes(q) || brought.includes(q) ||
         arrQty.includes(q) || outQty.includes(q) || arrDate.includes(q) ||
         issDate.includes(q) || length.includes(q) || dia.includes(q) || kgStr.includes(q)
       );
-    }
-    return matchesAvailability && matchesDate && matchesSearch;
-  });
+    });
+  }, [rows, searchQuery, availabilityFilter, startDate, endDate, dateFilter, stockStateMap]);
 
   const handleExportCSV = () => {
     const exportData = filteredRows.map(r => {

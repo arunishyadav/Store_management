@@ -1,7 +1,19 @@
 import axios from 'axios';
 import useAuthStore from '../store/authStore';
 
+const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.includes('vercel.app') || host.includes('finsenstore.com') || host !== 'localhost') {
+      return 'https://finsen-store-web.onrender.com';
+    }
+  }
+  return '';
+};
+
 const api = axios.create({
+  baseURL: getBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
     'Bypass-Tunnel-Reminder': 'true',

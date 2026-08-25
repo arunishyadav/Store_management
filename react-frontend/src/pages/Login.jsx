@@ -45,29 +45,26 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Fetch locations for the dropdown
-    api.get('/api/v1/locations')
-      .then(res => {
-        if (Array.isArray(res.data) && res.data.length > 0) {
-          setLocations(res.data);
-        }
-      })
-      .catch(err => console.error('Failed to fetch locations', err));
+    // Silent background warm-up ping so Render backend wakes up while user types User ID and Password
+    const warmup = () => {
+      api.get('/api/v1/locations')
+        .then(res => {
+          if (Array.isArray(res.data) && res.data.length > 0) {
+            setLocations(res.data);
+          }
+        })
+        .catch(err => console.error('Silent warmup error', err));
+    };
+    warmup();
+    const interval = setInterval(warmup, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLoginTypeChange = (e) => {
     const type = e.target.value;
     setLoginType(type);
-    if (type === 'Admin Login') {
-      setUserId('');
-      setPassword('');
-    } else if (type === 'Store Incharge Login') {
-      setUserId('');
-      setPassword('');
-    } else {
-      setUserId('');
-      setPassword('');
-    }
+    setUserId('');
+    setPassword('');
   };
 
   const handleLogin = async (e) => {

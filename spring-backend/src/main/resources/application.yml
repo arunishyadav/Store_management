@@ -23,16 +23,14 @@ spring:
     password: ${LIVE_DB_PASS:npg_x7LQRX9gW8vJ}
     
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+        temp:
+          use_jdbc_metadata_defaults: false
 
 app:
   jwt:

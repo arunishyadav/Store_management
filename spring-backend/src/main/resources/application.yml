@@ -17,10 +17,10 @@ spring:
             enable: true
   
   datasource:
-    url: ${DB_URL:jdbc:h2:file:./storedb;AUTO_SERVER=TRUE}
-    driver-class-name: ${DB_DRIVER:org.h2.Driver}
-    username: ${DB_USER:sa}
-    password: ${DB_PASS:}
+    url: ${LIVE_DB_URL:jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require}
+    driver-class-name: org.postgresql.Driver
+    username: ${LIVE_DB_USER:neondb_owner}
+    password: ${LIVE_DB_PASS:npg_x7LQRX9gW8vJ}
     
   jpa:
     hibernate:

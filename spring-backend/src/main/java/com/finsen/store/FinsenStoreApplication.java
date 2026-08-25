@@ -13,7 +13,9 @@ public class FinsenStoreApplication {
 		System.setProperty("spring.datasource.username", "neondb_owner");
 		System.setProperty("spring.datasource.password", "npg_x7LQRX9gW8vJ");
 		System.setProperty("spring.datasource.driver-class-name", "org.postgresql.Driver");
-		System.setProperty("spring.jpa.database-platform", "org.hibernate.dialect.PostgreSQLDialect");
+		System.setProperty("spring.datasource.hikari.maximum-pool-size", "5");
+		System.setProperty("spring.datasource.hikari.idle-timeout", "30000");
+		System.setProperty("spring.datasource.hikari.max-lifetime", "60000");
 		System.setProperty("spring.jpa.hibernate.ddl-auto", "update");
 
 		SpringApplication.run(FinsenStoreApplication.class, args);

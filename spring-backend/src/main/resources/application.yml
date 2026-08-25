@@ -21,9 +21,15 @@ spring:
     driver-class-name: org.postgresql.Driver
     username: ${LIVE_DB_USER:neondb_owner}
     password: ${LIVE_DB_PASS:npg_x7LQRX9gW8vJ}
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      idle-timeout: 30000
+      max-lifetime: 60000
+      connection-timeout: 20000
+      keepalive-time: 30000
     
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: false

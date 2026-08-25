@@ -21,16 +21,4 @@ public class FinsenStoreApplication {
 		SpringApplication.run(FinsenStoreApplication.class, args);
 	}
 
-	// Keep-Alive Self Ping every 4 minutes to prevent Render free container from sleeping
-	@Scheduled(fixedRate = 240000)
-	public void keepAlivePing() {
-		try {
-			java.net.URL url = new java.net.URL("https://finsenstore.com/");
-			java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-			conn.setRequestMethod("GET");
-			conn.setConnectTimeout(4000);
-			conn.getResponseCode();
-		} catch (Exception ignored) {}
-	}
-
 }

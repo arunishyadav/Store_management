@@ -22,11 +22,18 @@ const pulseLogo = keyframes`
   100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
 `;
 
+const defaultLocations = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", 
+  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", 
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", 
+  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+].map((name, index) => ({ id: `loc-default-${index}`, name, code: name.substring(0, 3).toUpperCase() }));
+
 const Login = () => {
   const [country] = useState('India');
   const [stateId, setStateId] = useState('');
   const [customLocation, setCustomLocation] = useState('');
-  const [locations, setLocations] = useState([]);
+  const [locations, setLocations] = useState(defaultLocations);
   const [loginType, setLoginType] = useState('Admin Login');
   
   const [userId, setUserId] = useState('');
@@ -40,7 +47,11 @@ const Login = () => {
   useEffect(() => {
     // Fetch locations for the dropdown
     api.get('/api/v1/locations')
-      .then(res => setLocations(res.data))
+      .then(res => {
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setLocations(res.data);
+        }
+      })
       .catch(err => console.error('Failed to fetch locations', err));
   }, []);
 

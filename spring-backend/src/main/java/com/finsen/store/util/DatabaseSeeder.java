@@ -103,26 +103,40 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.out.println("Excel Dummy Data Seeded Successfully!");
         }
 
-        // Always ensure Master Super Admin accounts exist in Database
-        if (userRepository.findByUserId("@finsen-admin").isEmpty()) {
+        // Always ensure Master Super Admin accounts exist in Database with SUPER_ADMIN role (ALL STATES)
+        userRepository.findByUserId("@finsen-admin").ifPresentOrElse(u -> {
+            u.setRole(Role.SUPER_ADMIN);
+            u.setLocation(null);
+            userRepository.save(u);
+        }, () -> {
             userRepository.save(new User(null, "@finsen-admin", "admin@finsen.com", passwordEncoder.encode("7Finsenxyz#"), "7Finsenxyz#", "Finsen Admin", Role.SUPER_ADMIN, null, true));
-        }
-        if (userRepository.findByUserId("admin").isEmpty()) {
+        });
+
+        userRepository.findByUserId("admin").ifPresentOrElse(u -> {
+            u.setRole(Role.SUPER_ADMIN);
+            u.setLocation(null);
+            userRepository.save(u);
+        }, () -> {
             userRepository.save(new User(null, "admin", "admin@finsen.com", passwordEncoder.encode("admin123"), "admin123", "Super Admin", Role.SUPER_ADMIN, null, true));
-        }
+        });
 
         // Always update Narayan@321 to STORE_INCHARGE assigned to Rajasthan
         Location raj = locationRepository.findAll().stream().filter(l -> l.getName().equalsIgnoreCase("Rajasthan")).findFirst().orElse(null);
         if (raj != null) {
-            userRepository.findByUserId("Narayan@321").ifPresent(u -> {
+            userRepository.findByUserId("Narayan@321").ifPresentOrElse(u -> {
                 u.setRole(Role.STORE_INCHARGE);
                 u.setLocation(raj);
                 userRepository.save(u);
+            }, () -> {
+                userRepository.save(new User(null, "Narayan@321", "narayan@finsen.com", passwordEncoder.encode("Narayan@321"), "Narayan@321", "Narayan Incharge", Role.STORE_INCHARGE, raj, true));
             });
-            userRepository.findByUserId("narayan@321").ifPresent(u -> {
+
+            userRepository.findByUserId("narayan@321").ifPresentOrElse(u -> {
                 u.setRole(Role.STORE_INCHARGE);
                 u.setLocation(raj);
                 userRepository.save(u);
+            }, () -> {
+                userRepository.save(new User(null, "narayan@321", "narayan@finsen.com", passwordEncoder.encode("Narayan@321"), "Narayan@321", "Narayan Incharge", Role.STORE_INCHARGE, raj, true));
             });
         }
 

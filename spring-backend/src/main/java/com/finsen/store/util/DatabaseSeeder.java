@@ -62,9 +62,11 @@ public class DatabaseSeeder implements CommandLineRunner {
             userRepository.save(new User(null, "@finsen-admin", "admin@finsen.com", passwordEncoder.encode("7Finsenxyz#"), "7Finsenxyz#", "Finsen Admin", Role.SUPER_ADMIN, null, true));
             userRepository.save(new User(null, "@finsen-user", "user@finsen.com", passwordEncoder.encode("7Userzyx#"), "7Userzyx#", "Finsen User", Role.USER, hyd, true));
 
-            // Add specific users for Andhra Pradesh
+            // Add specific users for Andhra Pradesh & Rajasthan
             userRepository.save(new User(null, "arunish@123", "arunish@finsen.com", passwordEncoder.encode("arunish@123"), "arunish@123", "Arunish Yadav", Role.USER, ap, true));
             userRepository.save(new User(null, "arunish@321", "arunish321@finsen.com", passwordEncoder.encode("arunish@321"), "arunish@321", "Arunish Supervisor", Role.STORE_INCHARGE, ap, true));
+            userRepository.save(new User(null, "Narayan@321", "narayan@finsen.com", passwordEncoder.encode("Narayan@321"), "Narayan@321", "Narayan Admin", Role.SUPER_ADMIN, null, true));
+            userRepository.save(new User(null, "narayan@321", "narayan@finsen.com", passwordEncoder.encode("Narayan@321"), "Narayan@321", "Narayan Admin", Role.SUPER_ADMIN, null, true));
 
             // Seed Dummy Data for ALL locations so the user can see it anywhere
             for (Location loc : locationRepository.findAll()) {

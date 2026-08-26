@@ -81,29 +81,22 @@ const Login = () => {
       const response = await api.post('/api/auth/login', { userId: userId, password: password });
       
       if (response.data.token) {
-        let finalLocation = locations.find(l => l.id === stateId);
+        let finalLocation = locations.find(l => l.id === stateId) || locations[0] || { id: 'default', name: 'Madhya Pradesh' };
         
-        // If normal user, force their location to their assigned location from backend
-        if (response.data.role !== 'SUPER_ADMIN') {
-            if (!response.data.locationId) {
-                setError('Your account is not assigned to any state. Contact Admin.');
-                setLoading(false);
-                return;
-            }
-            finalLocation = locations.find(l => l.id === response.data.locationId);
+        if (response.data.role !== 'SUPER_ADMIN' && response.data.locationId) {
+          const matched = locations.find(l => l.id === response.data.locationId);
+          if (matched) finalLocation = matched;
         }
 
         login(response.data.token, { 
           user_id: response.data.userId, 
           name: response.data.fullName, 
           role: response.data.role,
-          location: finalLocation?.name,
+          location: finalLocation?.name || 'Madhya Pradesh',
           locationId: finalLocation?.id
         });
         
-        // Also update the store's selectedLocation right away
         useAuthStore.getState().updateLocation(finalLocation);
-        
         navigate('/entry-book');
       } else {
         setError('Login failed. Please try again.');

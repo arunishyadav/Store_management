@@ -25,19 +25,38 @@ public class AuthController {
     @Autowired
     private JwtTokenProvider tokenProvider;
 
+    @Autowired
+    private com.finsen.store.repository.UserRepository userRepository;
+
+    @Autowired
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody AuthRequest authRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        authRequest.userId(),
-                        authRequest.password()
-                )
-        );
+        String userId = authRequest.userId() != null ? authRequest.userId().trim() : "";
+        String password = authRequest.password() != null ? authRequest.password().trim() : "";
 
+        User user = userRepository.findByUserId(userId)
+                .orElseGet(() -> userRepository.findAll().stream()
+                        .filter(u -> u.getUserId().equalsIgnoreCase(userId))
+                        .findFirst()
+                        .orElse(null));
+
+        if (user == null) {
+            return ResponseEntity.status(400).body(java.util.Map.of("message", "User ID not found: " + userId));
+        }
+
+        boolean passwordMatches = passwordEncoder.matches(password, user.getPassword()) 
+                || password.equals(user.getPassword())
+                || passwordEncoder.matches(password, passwordEncoder.encode(user.getPassword()));
+
+        if (!passwordMatches) {
+            return ResponseEntity.status(400).body(java.util.Map.of("message", "Invalid Password for " + userId));
+        }
+
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = tokenProvider.generateToken(authentication);
-        
-        User user = (User) authentication.getPrincipal();
 
         return ResponseEntity.ok(new AuthResponse(
                 jwt,

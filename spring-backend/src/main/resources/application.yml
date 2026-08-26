@@ -17,19 +17,18 @@ spring:
             enable: true
   
   datasource:
-    url: ${LIVE_DB_URL:jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require}
-    driver-class-name: org.postgresql.Driver
-    username: ${LIVE_DB_USER:neondb_owner}
-    password: ${LIVE_DB_PASS:npg_x7LQRX9gW8vJ}
+    url: jdbc:h2:file:./data/finsen_db;DB_CLOSE_ON_EXIT=FALSE;AUTO_RECONNECT=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
     hikari:
-      maximum-pool-size: 5
-      minimum-idle: 1
+      maximum-pool-size: 10
+      minimum-idle: 2
       idle-timeout: 30000
-      max-lifetime: 60000
-      connection-timeout: 20000
-      keepalive-time: 30000
+      connection-timeout: 5000
     
   jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: update
     show-sql: false

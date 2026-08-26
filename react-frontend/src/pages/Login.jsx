@@ -103,7 +103,31 @@ const Login = () => {
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'Login failed. Invalid credentials.');
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.code === 'ERR_NETWORK' || !err.response) {
+        setError('Server is waking up... Connecting securely...');
+        setTimeout(() => {
+          api.post('/api/auth/login', { userId: userId, password: password })
+            .then(res => {
+              if (res.data.token) {
+                let finalLocation = locations.find(l => l.id === stateId) || locations[0] || { id: 'default', name: 'Madhya Pradesh' };
+                login(res.data.token, { 
+                  user_id: res.data.userId, 
+                  name: res.data.fullName, 
+                  role: res.data.role,
+                  location: finalLocation?.name || 'Madhya Pradesh',
+                  locationId: finalLocation?.id
+                });
+                useAuthStore.getState().updateLocation(finalLocation);
+                navigate('/entry-book');
+              }
+            })
+            .catch(() => setError('Connection failed. Please click Sign In again.'));
+        }, 1500);
+      } else {
+        setError('Login failed. Please check your credentials or try again.');
+      }
     } finally {
       setLoading(false);
     }

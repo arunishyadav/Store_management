@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { AppBar, Toolbar, Typography, Box, Menu, MenuItem, Button, IconButton } from '@mui/material';
-import { AccountCircle, Menu as MenuIcon } from '@mui/icons-material';
+import { AppBar, Toolbar, Typography, Box, Menu, MenuItem, Button, IconButton, Chip } from '@mui/material';
+import { AccountCircle, Menu as MenuIcon, LocationOn } from '@mui/icons-material';
 import useAuthStore from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 import axios from '../services/api';
@@ -59,9 +59,23 @@ const Header = ({ onDrawerToggle }) => {
         
         {user && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 2 } }}>
-            <Typography variant="body2" sx={{ display: { xs: 'none', md: 'block' } }}>
-              Location: <strong>{selectedLocation?.name || user.location || 'Not Set'}</strong>
-            </Typography>
+            {/* Prominent State Location Badge visible on ALL devices */}
+            <Chip
+              icon={<LocationOn sx={{ color: '#0284c7 !important' }} />}
+              label={`SITE: ${selectedLocation?.name || user.location || 'Rajasthan'}`}
+              onClick={user.role === 'SUPER_ADMIN' ? handleMenu : undefined}
+              sx={{
+                fontWeight: 'bold',
+                fontSize: { xs: '0.75rem', sm: '0.85rem' },
+                backgroundColor: '#e0f2fe',
+                color: '#0369a1',
+                border: '1.5px solid #0284c7',
+                px: 0.5,
+                py: 0.2,
+                cursor: user.role === 'SUPER_ADMIN' ? 'pointer' : 'default',
+                '& .MuiChip-label': { px: 1 }
+              }}
+            />
             
             <Box>
               <Button onClick={handleMenu} color="inherit" sx={{ minWidth: 'auto', p: { xs: 0.5, sm: 1 }, textTransform: 'none' }}>
@@ -87,7 +101,7 @@ const Header = ({ onDrawerToggle }) => {
                 {user.role === 'SUPER_ADMIN' && (
                   <>
                     <MenuItem disabled sx={{ opacity: '1 !important', fontWeight: 'bold', color: 'primary.main' }}>
-                      Change Location
+                      Change Active State Site
                     </MenuItem>
                     {locations.map((loc) => (
                       <MenuItem key={loc.id} onClick={() => handleLocationChange(loc)} selected={selectedLocation?.id === loc.id}>

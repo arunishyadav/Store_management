@@ -435,7 +435,7 @@ export default function StockLedger() {
   const [rowModesModel, setRowModesModel] = useState({});
   const [materials, setMaterials] = useState([]);
   const todayStr = new Date().toISOString().split('T')[0];
-  const [dateFilter, setDateFilter] = useState(todayStr);
+  const [dateFilter, setDateFilter] = useState(''); // Default to All Data so all historical entries show up immediately
   const [loading, setLoading] = useState(false);
   const locationId = useAuthStore(state => state.selectedLocation?.id);
   const currentUser = useAuthStore(state => state.user);

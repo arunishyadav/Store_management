@@ -70,18 +70,15 @@ const Login = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
-    if (!stateId) {
-      setError('Please select a valid State/Location.');
-      return;
-    }
 
+    const effectiveStateId = stateId || (locations[0] ? locations[0].id : 'loc-default-0');
     setLoading(true);
 
     try {
       const response = await api.post('/api/auth/login', { userId: userId, password: password });
       
       if (response.data.token) {
-        let finalLocation = locations.find(l => l.id === stateId) || locations[0] || { id: 'default', name: 'Madhya Pradesh' };
+        let finalLocation = locations.find(l => l.id === effectiveStateId) || locations[0] || { id: 'default', name: 'Madhya Pradesh' };
         
         if (response.data.role !== 'SUPER_ADMIN' && response.data.locationId) {
           const matched = locations.find(l => l.id === response.data.locationId);

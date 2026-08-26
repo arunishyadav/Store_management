@@ -107,11 +107,19 @@ public class UserController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> deleteUser(@PathVariable UUID id) {
-        if (userRepository.existsById(id)) {
-            userRepository.deleteById(id);
-            return ResponseEntity.ok(java.util.Map.of("message", "User deleted successfully."));
+        try {
+            if (userRepository.existsById(id)) {
+                userRepository.deleteById(id);
+                return ResponseEntity.ok(java.util.Map.of("message", "User deleted successfully."));
+            }
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            userRepository.findById(id).ifPresent(u -> {
+                u.setActive(false);
+                userRepository.save(u);
+            });
+            return ResponseEntity.ok(java.util.Map.of("message", "User account deactivated successfully."));
         }
-        return ResponseEntity.notFound().build();
     }
 
     @PutMapping("/me/password")

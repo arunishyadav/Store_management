@@ -1,14 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "react-frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
-    }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "https://finsen-store-web.onrender.com/api/$1" },
-    { "src": "/(.*)", "dest": "/react-frontend/dist/$1" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://finsen-store-web.onrender.com/api/$1" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

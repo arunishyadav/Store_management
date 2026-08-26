@@ -80,9 +80,9 @@ const Login = () => {
       if (response.data.token) {
         let finalLocation = locations.find(l => l.id === effectiveStateId) || locations[0] || { id: 'default', name: 'Madhya Pradesh' };
         
-        if (response.data.role !== 'SUPER_ADMIN' && response.data.locationId) {
+        if (response.data.role !== 'SUPER_ADMIN' && response.data.locationId && response.data.locationName) {
           const matched = locations.find(l => l.id === response.data.locationId);
-          if (matched) finalLocation = matched;
+          finalLocation = matched || { id: response.data.locationId, name: response.data.locationName };
         }
 
         login(response.data.token, { 

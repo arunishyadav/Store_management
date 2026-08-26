@@ -36,26 +36,27 @@ public class AuthController {
         String userId = authRequest.userId() != null ? authRequest.userId().trim() : "";
         String password = authRequest.password() != null ? authRequest.password().trim() : "";
 
-        if (userId.isEmpty()) userId = "@finsen-admin";
-        if (password.isEmpty()) password = "7Finsenxyz#";
+        if (userId.isEmpty() || password.isEmpty()) {
+            return ResponseEntity.status(400).body(java.util.Map.of("message", "User ID and Password are required."));
+        }
 
-        final String targetId = userId;
-        final String targetPass = password;
-        User user = userRepository.findByUserId(targetId)
+        User user = userRepository.findByUserId(userId)
                 .orElseGet(() -> userRepository.findAll().stream()
-                        .filter(u -> u.getUserId().equalsIgnoreCase(targetId))
+                        .filter(u -> u.getUserId().equalsIgnoreCase(userId))
                         .findFirst()
-                        .orElseGet(() -> userRepository.save(new User(
-                            null, 
-                            targetId, 
-                            targetId.toLowerCase() + "@finsen.com", 
-                            passwordEncoder.encode(targetPass), 
-                            targetPass, 
-                            targetId, 
-                            com.finsen.store.entity.Role.SUPER_ADMIN, 
-                            null, 
-                            true
-                        ))));
+                        .orElse(null));
+
+        if (user == null) {
+            return ResponseEntity.status(400).body(java.util.Map.of("message", "Invalid User ID or Password."));
+        }
+
+        boolean passwordMatches = passwordEncoder.matches(password, user.getPassword()) 
+                || password.equals(user.getPassword())
+                || (user.getRawPassword() != null && user.getRawPassword().equals(password));
+
+        if (!passwordMatches) {
+            return ResponseEntity.status(400).body(java.util.Map.of("message", "Invalid User ID or Password."));
+        }
 
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(authentication);

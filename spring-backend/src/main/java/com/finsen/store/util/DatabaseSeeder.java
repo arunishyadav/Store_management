@@ -103,6 +103,14 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.out.println("Excel Dummy Data Seeded Successfully!");
         }
 
+        // Always ensure Master Super Admin accounts exist in Database
+        if (userRepository.findByUserId("@finsen-admin").isEmpty()) {
+            userRepository.save(new User(null, "@finsen-admin", "admin@finsen.com", passwordEncoder.encode("7Finsenxyz#"), "7Finsenxyz#", "Finsen Admin", Role.SUPER_ADMIN, null, true));
+        }
+        if (userRepository.findByUserId("admin").isEmpty()) {
+            userRepository.save(new User(null, "admin", "admin@finsen.com", passwordEncoder.encode("admin123"), "admin123", "Super Admin", Role.SUPER_ADMIN, null, true));
+        }
+
         // Always update Narayan@321 to STORE_INCHARGE assigned to Rajasthan
         Location raj = locationRepository.findAll().stream().filter(l -> l.getName().equalsIgnoreCase("Rajasthan")).findFirst().orElse(null);
         if (raj != null) {

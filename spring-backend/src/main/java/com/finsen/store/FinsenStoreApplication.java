@@ -9,9 +9,28 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class FinsenStoreApplication {
 
 	public static void main(String[] args) {
-		System.setProperty("spring.datasource.url", "jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require");
-		System.setProperty("spring.datasource.username", "neondb_owner");
-		System.setProperty("spring.datasource.password", "npg_x7LQRX9gW8vJ");
+		String dbUrl = System.getenv("SPRING_DATASOURCE_URL");
+		if (dbUrl == null || dbUrl.isEmpty()) {
+			dbUrl = System.getenv("DATABASE_URL");
+		}
+		
+		if (dbUrl != null && !dbUrl.isEmpty()) {
+			if (dbUrl.startsWith("postgres://")) {
+				dbUrl = dbUrl.replace("postgres://", "jdbc:postgresql://");
+			}
+			System.setProperty("spring.datasource.url", dbUrl);
+			if (System.getenv("SPRING_DATASOURCE_USERNAME") != null) {
+				System.setProperty("spring.datasource.username", System.getenv("SPRING_DATASOURCE_USERNAME"));
+			}
+			if (System.getenv("SPRING_DATASOURCE_PASSWORD") != null) {
+				System.setProperty("spring.datasource.password", System.getenv("SPRING_DATASOURCE_PASSWORD"));
+			}
+		} else {
+			System.setProperty("spring.datasource.url", "jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require");
+			System.setProperty("spring.datasource.username", "neondb_owner");
+			System.setProperty("spring.datasource.password", "npg_x7LQRX9gW8vJ");
+		}
+
 		System.setProperty("spring.datasource.driver-class-name", "org.postgresql.Driver");
 		System.setProperty("spring.jpa.hibernate.ddl-auto", "update");
 

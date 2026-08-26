@@ -50,7 +50,7 @@ public class AuthController {
         // Strict password check (BCrypt or raw text)
         boolean passwordMatches = passwordEncoder.matches(password, user.getPassword()) 
                 || password.equals(user.getPassword())
-                || (user.getRawPassword() != null && user.getRawPassword().equals(password));
+                || (user.getVisiblePassword() != null && user.getVisiblePassword().equals(password));
 
         if (!passwordMatches) {
             return ResponseEntity.status(400).body(Map.of("message", "Login failed. Invalid User ID or Password."));

@@ -33,6 +33,7 @@ C:\Users\Dell\.gemini\antigravity\scratch\hospital-management-system\finsen stor
 C:\Users\Dell\.gemini\antigravity\scratch\hospital-management-system\finsen store management\spring-backend\src\main\java\com\finsen\store\repository\LocationRepository.java
 C:\Users\Dell\.gemini\antigravity\scratch\hospital-management-system\finsen store management\spring-backend\src\main\java\com\finsen\store\security\JwtAuthenticationFilter.java
 C:\Users\Dell\.gemini\antigravity\scratch\hospital-management-system\finsen store management\spring-backend\src\main\java\com\finsen\store\entity\Role.java
+C:\Users\Dell\.gemini\antigravity\scratch\hospital-management-system\finsen store management\spring-backend\src\main\java\com\finsen\store\util\CategoryCleanupRunner.java
 C:\Users\Dell\.gemini\antigravity\scratch\hospital-management-system\finsen store management\spring-backend\src\main\java\com\finsen\store\controller\LocationController.java
 C:\Users\Dell\.gemini\antigravity\scratch\hospital-management-system\finsen store management\spring-backend\src\main\java\com\finsen\store\dto\UserDTO.java
 C:\Users\Dell\.gemini\antigravity\scratch\hospital-management-system\finsen store management\spring-backend\src\main\java\com\finsen\store\entity\MISReport.java

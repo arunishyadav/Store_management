@@ -46,11 +46,8 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/auth/**", "/ws/**", "/actuator/**").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/v1/locations").permitAll()
-                .requestMatchers("/", "/index.html", "/assets/**", "/*.svg", "/*.ico", "/*.json", "/*.png").permitAll()
-                .requestMatchers("/login", "/entry-book", "/materials", "/mis-report", "/users", "/help").permitAll()
-                .anyRequest().authenticated()
+                .requestMatchers("/api/auth/**", "/api/v1/**", "/ws/**", "/actuator/**").permitAll()
+                .requestMatchers("/**").permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

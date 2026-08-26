@@ -62,11 +62,13 @@ public class DatabaseSeeder implements CommandLineRunner {
             userRepository.save(new User(null, "@finsen-admin", "admin@finsen.com", passwordEncoder.encode("7Finsenxyz#"), "7Finsenxyz#", "Finsen Admin", Role.SUPER_ADMIN, null, true));
             userRepository.save(new User(null, "@finsen-user", "user@finsen.com", passwordEncoder.encode("7Userzyx#"), "7Userzyx#", "Finsen User", Role.USER, hyd, true));
 
+            Location raj = locationRepository.findAll().stream().filter(l -> l.getName().equalsIgnoreCase("Rajasthan")).findFirst().orElse(ap);
+
             // Add specific users for Andhra Pradesh & Rajasthan
             userRepository.save(new User(null, "arunish@123", "arunish@finsen.com", passwordEncoder.encode("arunish@123"), "arunish@123", "Arunish Yadav", Role.USER, ap, true));
             userRepository.save(new User(null, "arunish@321", "arunish321@finsen.com", passwordEncoder.encode("arunish@321"), "arunish@321", "Arunish Supervisor", Role.STORE_INCHARGE, ap, true));
-            userRepository.save(new User(null, "Narayan@321", "narayan@finsen.com", passwordEncoder.encode("Narayan@321"), "Narayan@321", "Narayan Admin", Role.SUPER_ADMIN, null, true));
-            userRepository.save(new User(null, "narayan@321", "narayan@finsen.com", passwordEncoder.encode("Narayan@321"), "Narayan@321", "Narayan Admin", Role.SUPER_ADMIN, null, true));
+            userRepository.save(new User(null, "Narayan@321", "narayan@finsen.com", passwordEncoder.encode("Narayan@321"), "Narayan@321", "Narayan Incharge", Role.STORE_INCHARGE, raj, true));
+            userRepository.save(new User(null, "narayan@321", "narayan@finsen.com", passwordEncoder.encode("Narayan@321"), "Narayan@321", "Narayan Incharge", Role.STORE_INCHARGE, raj, true));
 
             // Seed Dummy Data for ALL locations so the user can see it anywhere
             for (Location loc : locationRepository.findAll()) {
@@ -99,6 +101,21 @@ public class DatabaseSeeder implements CommandLineRunner {
             }
             
             System.out.println("Excel Dummy Data Seeded Successfully!");
+        }
+
+        // Always update Narayan@321 to STORE_INCHARGE assigned to Rajasthan
+        Location raj = locationRepository.findAll().stream().filter(l -> l.getName().equalsIgnoreCase("Rajasthan")).findFirst().orElse(null);
+        if (raj != null) {
+            userRepository.findByUserId("Narayan@321").ifPresent(u -> {
+                u.setRole(Role.STORE_INCHARGE);
+                u.setLocation(raj);
+                userRepository.save(u);
+            });
+            userRepository.findByUserId("narayan@321").ifPresent(u -> {
+                u.setRole(Role.STORE_INCHARGE);
+                u.setLocation(raj);
+                userRepository.save(u);
+            });
         }
 
         // Always ensure Support Contacts exist

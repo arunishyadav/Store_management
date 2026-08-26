@@ -104,6 +104,16 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<?> deleteUser(@PathVariable UUID id) {
+        if (userRepository.existsById(id)) {
+            userRepository.deleteById(id);
+            return ResponseEntity.ok(java.util.Map.of("message", "User deleted successfully."));
+        }
+        return ResponseEntity.notFound().build();
+    }
+
     @PutMapping("/me/password")
     public ResponseEntity<Void> updateMyPassword(Authentication auth, @RequestBody PasswordUpdateDTO dto) {
         User user = (User) auth.getPrincipal();

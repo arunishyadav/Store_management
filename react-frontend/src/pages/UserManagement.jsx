@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, Button, Paper, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Alert, Card, CardContent, Chip, useMediaQuery, useTheme, Autocomplete } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
-import { Person as PersonIcon, Edit as EditIcon, Lock as LockIcon, Email as EmailIcon, LocationOn as LocationIcon } from '@mui/icons-material';
+import { Person as PersonIcon, Edit as EditIcon, DeleteOutlined as DeleteIcon, Lock as LockIcon, Email as EmailIcon, LocationOn as LocationIcon } from '@mui/icons-material';
 import useAuthStore from '../store/authStore';
 import api from '../services/api';
 
@@ -76,15 +76,26 @@ export default function UserManagement() {
     }
   };
 
+  const handleDeleteUser = async (user) => {
+    if (window.confirm(`Are you sure you want to delete user "${user.userId}" (${user.fullName || 'User'})?`)) {
+      try {
+        await api.delete(`/api/v1/users/${user.id}`);
+        fetchData();
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to delete user');
+      }
+    }
+  };
+
   const columns = [
-    { field: 'userId', headerName: 'User ID', width: 150 },
-    { field: 'fullName', headerName: 'Full Name', width: 150 },
-    { field: 'email', headerName: 'Email', width: 180 },
-    { field: 'password', headerName: 'Password', width: 120 },
+    { field: 'userId', headerName: 'User ID', width: 140 },
+    { field: 'fullName', headerName: 'Full Name', width: 140 },
+    { field: 'email', headerName: 'Email', width: 170 },
+    { field: 'password', headerName: 'Password', width: 110 },
     { 
       field: 'role', 
       headerName: 'Role', 
-      width: 250, 
+      width: 240, 
       renderCell: (params) => {
         if (params.value === 'USER') return 'Viewer (Only View)';
         if (params.value === 'STORE_INCHARGE') return 'Store Incharge (Add/Edit Entries)';
@@ -92,20 +103,35 @@ export default function UserManagement() {
         return params.value;
       }
     },
-    { field: 'locationName', headerName: 'Assigned State', width: 180 },
-    { field: 'active', headerName: 'Status', width: 100, renderCell: (params) => params.value ? 'Active' : 'Inactive' },
+    { field: 'locationName', headerName: 'Assigned State', width: 160 },
+    { field: 'active', headerName: 'Status', width: 90, renderCell: (params) => params.value ? 'Active' : 'Inactive' },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 170,
       renderCell: (params) => (
-        <Button 
-          size="small" 
-          variant="outlined" 
-          onClick={() => handleOpenDialog(params.row)}
-        >
-          Edit
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, height: '100%' }}>
+          <Button 
+            size="small" 
+            variant="outlined" 
+            startIcon={<EditIcon fontSize="small" />}
+            onClick={() => handleOpenDialog(params.row)}
+            sx={{ py: 0.2, px: 1, minWidth: 'auto', fontWeight: 'bold' }}
+          >
+            Edit
+          </Button>
+
+          <Button 
+            size="small" 
+            variant="outlined" 
+            color="error"
+            startIcon={<DeleteIcon fontSize="small" />}
+            onClick={() => handleDeleteUser(params.row)}
+            sx={{ py: 0.2, px: 1, minWidth: 'auto', fontWeight: 'bold' }}
+          >
+            Delete
+          </Button>
+        </Box>
       )
     }
   ];
@@ -175,15 +201,27 @@ export default function UserManagement() {
                       variant="outlined" 
                       size="small"
                     />
-                    <Button 
-                      size="small" 
-                      variant="outlined" 
-                      startIcon={<EditIcon />} 
-                      onClick={() => handleOpenDialog(u)}
-                      sx={{ fontWeight: 'bold' }}
-                    >
-                      Edit User
-                    </Button>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button 
+                        size="small" 
+                        variant="outlined" 
+                        startIcon={<EditIcon />} 
+                        onClick={() => handleOpenDialog(u)}
+                        sx={{ fontWeight: 'bold' }}
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        size="small" 
+                        variant="outlined" 
+                        color="error"
+                        startIcon={<DeleteIcon />} 
+                        onClick={() => handleDeleteUser(u)}
+                        sx={{ fontWeight: 'bold' }}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
                   </Box>
                 </CardContent>
               </Card>

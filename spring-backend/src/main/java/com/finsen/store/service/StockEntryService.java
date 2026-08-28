@@ -35,7 +35,14 @@ public class StockEntryService {
         this.emailService = emailService;
     }
 
+    public List<StockEntry> getAllEntries() {
+        return stockEntryRepository.findAll();
+    }
+
     public List<StockEntry> getEntriesByLocation(UUID locationId) {
+        if (locationId == null) {
+            return stockEntryRepository.findAll();
+        }
         return stockEntryRepository.findByLocationIdOrderByArrivalDateDesc(locationId);
     }
 

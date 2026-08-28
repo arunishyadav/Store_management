@@ -24,7 +24,7 @@ public class StockEntryController {
     }
 
     @GetMapping
-    public ResponseEntity<List<StockEntry>> getEntries(@RequestParam UUID locationId) {
+    public ResponseEntity<List<StockEntry>> getEntries(@RequestParam(required = false) UUID locationId) {
         return ResponseEntity.ok(stockEntryService.getEntriesByLocation(locationId));
     }
 

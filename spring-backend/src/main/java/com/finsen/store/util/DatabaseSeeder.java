@@ -9,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
+import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -139,6 +141,19 @@ public class DatabaseSeeder implements CommandLineRunner {
                 userRepository.save(new User(null, "narayan@321", "narayan@finsen.com", passwordEncoder.encode("Narayan@321"), "Narayan@321", "Narayan Incharge", Role.STORE_INCHARGE, raj, true));
             });
         }
+
+        // Clean up any old auto-provisioned test user accounts in database
+        List<String> validUserIds = List.of("@finsen-admin", "admin", "Narayan@321", "narayan@321", "arunish@321", "arunish@123", "@finsen-user", "storeadmin", "onlyview@123");
+        userRepository.findAll().stream()
+                .filter(u -> u.getUserId() != null && !validUserIds.contains(u.getUserId()))
+                .forEach(u -> {
+                    try {
+                        userRepository.delete(u);
+                    } catch (Exception e) {
+                        u.setActive(false);
+                        userRepository.save(u);
+                    }
+                });
 
         // Always ensure Support Contacts exist
         if (supportContactRepository.count() == 0) {

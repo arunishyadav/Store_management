@@ -43,14 +43,23 @@ public class AuthController {
                         .findFirst()
                         .orElse(null));
 
-        if (user == null) {
+        if (user == null || !user.isActive()) {
             return ResponseEntity.status(400).body(Map.of("message", "Login failed. Invalid User ID or Password."));
         }
 
-        // Strict password check (BCrypt or raw text)
-        boolean passwordMatches = passwordEncoder.matches(password, user.getPassword()) 
-                || password.equals(user.getPassword())
-                || (user.getVisiblePassword() != null && user.getVisiblePassword().equals(password));
+        // Strict password check (BCrypt or exact match)
+        boolean passwordMatches = false;
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            try {
+                passwordMatches = passwordEncoder.matches(password, user.getPassword());
+            } catch (Exception ignored) {}
+            if (!passwordMatches) {
+                passwordMatches = password.equals(user.getPassword());
+            }
+        }
+        if (!passwordMatches && user.getVisiblePassword() != null && !user.getVisiblePassword().isEmpty()) {
+            passwordMatches = password.equals(user.getVisiblePassword());
+        }
 
         if (!passwordMatches) {
             return ResponseEntity.status(400).body(Map.of("message", "Login failed. Invalid User ID or Password."));

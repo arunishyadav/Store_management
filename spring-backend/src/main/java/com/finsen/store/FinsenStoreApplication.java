@@ -9,6 +9,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class FinsenStoreApplication {
 
 	public static void main(String[] args) {
+		String renderPort = System.getenv("PORT");
+		if (renderPort != null && !renderPort.isEmpty()) {
+			System.setProperty("server.port", renderPort);
+		} else {
+			System.setProperty("server.port", "8080");
+		}
 		String neonUrl = "jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require";
 		String neonUser = "neondb_owner";
 		String neonPass = "npg_x7LQRX9gW8vJ";

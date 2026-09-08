@@ -1,12 +1,13 @@
-# Stage 1: Build JAR inside Docker
+# Stage 1: Build Spring Boot app with Maven
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
 WORKDIR /build
-COPY . .
-RUN if [ -d "spring-backend" ]; then cd spring-backend; fi && mvn clean package -DskipTests
+COPY pom.xml ./
+COPY src ./src
+RUN mvn clean package -DskipTests -Djar.finalName=app
 
-# Stage 2: Lightweight JRE Runner
+# Stage 2: Lightweight JRE Runtime
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-COPY --from=builder /build/**/target/*.jar app.jar
+COPY --from=builder /build/target/app.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

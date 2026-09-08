@@ -7,8 +7,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
-        changeOrigin: true
+        target: 'https://finsen-store-web.onrender.com',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

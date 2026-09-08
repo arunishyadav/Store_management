@@ -32,6 +32,7 @@ public class FinsenStoreApplication {
 		}
 
 		System.setProperty("spring.datasource.driver-class-name", "org.postgresql.Driver");
+		System.setProperty("spring.datasource.hikari.initialization-fail-timeout", "-1");
 		System.setProperty("spring.jpa.database-platform", "org.hibernate.dialect.PostgreSQLDialect");
 		System.setProperty("spring.jpa.properties.hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
 		System.setProperty("spring.jpa.hibernate.ddl-auto", "update");

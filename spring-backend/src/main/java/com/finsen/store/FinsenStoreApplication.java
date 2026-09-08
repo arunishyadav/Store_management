@@ -9,31 +9,41 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class FinsenStoreApplication {
 
 	public static void main(String[] args) {
+		String neonUrl = "jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require";
+		String neonUser = "neondb_owner";
+		String neonPass = "npg_x7LQRX9gW8vJ";
+
 		String dbUrl = System.getenv("SPRING_DATASOURCE_URL");
-		if (dbUrl == null || dbUrl.isEmpty() || dbUrl.contains("dpg-d9imu474")) {
+		if (dbUrl == null || dbUrl.isEmpty() || dbUrl.contains("dpg-")) {
 			dbUrl = System.getenv("DATABASE_URL");
 		}
-		if (dbUrl == null || dbUrl.isEmpty() || dbUrl.contains("dpg-d9imu474")) {
+		if (dbUrl == null || dbUrl.isEmpty() || dbUrl.contains("dpg-")) {
 			dbUrl = System.getenv("DB_URL");
 		}
-		if (dbUrl == null || dbUrl.isEmpty() || dbUrl.contains("dpg-d9imu474")) {
-			dbUrl = "jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require";
+		if (dbUrl == null || dbUrl.isEmpty() || dbUrl.contains("dpg-")) {
+			dbUrl = neonUrl;
 		}
 
 		String dbUser = System.getenv("SPRING_DATASOURCE_USERNAME");
-		if (dbUser == null || dbUser.isEmpty() || dbUrl.contains("neon.tech")) {
+		if (dbUser == null || dbUser.isEmpty() || dbUser.contains("finsen_db_user")) {
 			dbUser = System.getenv("DB_USER");
 		}
-		if (dbUser == null || dbUser.isEmpty() || dbUrl.contains("neon.tech")) {
-			dbUser = "neondb_owner";
+		if (dbUser == null || dbUser.isEmpty() || dbUser.contains("finsen_db_user") || dbUrl.equals(neonUrl)) {
+			dbUser = neonUser;
 		}
 
 		String dbPass = System.getenv("SPRING_DATASOURCE_PASSWORD");
-		if (dbPass == null || dbPass.isEmpty() || dbUrl.contains("neon.tech")) {
+		if (dbPass == null || dbPass.isEmpty() || dbPass.contains("2dASu9vY")) {
 			dbPass = System.getenv("DB_PASS");
 		}
-		if (dbPass == null || dbPass.isEmpty() || dbUrl.contains("neon.tech")) {
-			dbPass = "npg_x7LQRX9gW8vJ";
+		if (dbPass == null || dbPass.isEmpty() || dbPass.contains("2dASu9vY") || dbUrl.equals(neonUrl)) {
+			dbPass = neonPass;
+		}
+
+		if (dbUrl.contains("dpg-") || dbUser.contains("finsen_db_user")) {
+			dbUrl = neonUrl;
+			dbUser = neonUser;
+			dbPass = neonPass;
 		}
 
 		if (dbUrl.startsWith("postgres://")) {

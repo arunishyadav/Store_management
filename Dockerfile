@@ -10,7 +10,6 @@ RUN npm run build
 FROM maven:3.9.6-eclipse-temurin-21 AS build-backend
 WORKDIR /app/backend
 COPY spring-backend/pom.xml ./
-RUN mvn dependency:go-offline
 COPY spring-backend/src ./src
 # Copy the built React app into the Spring Boot static folder
 COPY --from=build-frontend /app/frontend/dist ./src/main/resources/static

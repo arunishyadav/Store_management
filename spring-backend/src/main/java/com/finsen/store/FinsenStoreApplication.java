@@ -16,7 +16,7 @@ public class FinsenStoreApplication {
 			System.setProperty("server.port", "8080");
 		}
 
-		// Force active Neon 24/7 PostgreSQL Database Connection
+		// STRICT NEON 24/7 FREE POSTGRESQL DATABASE BINDING
 		String neonUrl = "jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require";
 		String neonUser = "neondb_owner";
 		String neonPass = "npg_x7LQRX9gW8vJ";
@@ -26,12 +26,12 @@ public class FinsenStoreApplication {
 		System.setProperty("spring.datasource.password", neonPass);
 		System.setProperty("spring.datasource.driver-class-name", "org.postgresql.Driver");
 
-		// Explicit Hibernate Dialect configuration to prevent "Unable to determine Dialect without JDBC metadata"
+		// Hibernate Dialect Properties
 		System.setProperty("spring.jpa.database-platform", "org.hibernate.dialect.PostgreSQLDialect");
 		System.setProperty("spring.jpa.properties.hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
 		System.setProperty("spring.jpa.properties.hibernate.temp.use_jdbc_metadata_defaults", "false");
 
-		// HikariCP Resilience Configurations
+		// HikariCP Resilience
 		System.setProperty("spring.datasource.hikari.initialization-fail-timeout", "-1");
 		System.setProperty("spring.datasource.hikari.connection-timeout", "60000");
 		System.setProperty("spring.datasource.hikari.maximum-pool-size", "10");

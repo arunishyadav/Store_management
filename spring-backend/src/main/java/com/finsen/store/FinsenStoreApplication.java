@@ -16,10 +16,18 @@ public class FinsenStoreApplication {
 			System.setProperty("server.port", "8080");
 		}
 
-		// STRICT NEON 24/7 FREE POSTGRESQL DATABASE BINDING
-		String neonUrl = "jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require";
-		String neonUser = "neondb_owner";
-		String neonPass = "npg_x7LQRX9gW8vJ";
+		String neonUrl = System.getenv("SPRING_DATASOURCE_URL");
+		if (neonUrl == null || neonUrl.isEmpty()) {
+			neonUrl = "jdbc:postgresql://ep-silent-flower-a5s0z84j.us-east-2.aws.neon.tech/neondb?sslmode=require";
+		}
+		String neonUser = System.getenv("SPRING_DATASOURCE_USERNAME");
+		if (neonUser == null || neonUser.isEmpty()) {
+			neonUser = "neondb_owner";
+		}
+		String neonPass = System.getenv("SPRING_DATASOURCE_PASSWORD");
+		if (neonPass == null || neonPass.isEmpty()) {
+			neonPass = "npg_x7LQRX9gW8vJ";
+		}
 
 		System.setProperty("spring.datasource.url", neonUrl);
 		System.setProperty("spring.datasource.username", neonUser);
@@ -34,7 +42,8 @@ public class FinsenStoreApplication {
 		// HikariCP Resilience
 		System.setProperty("spring.datasource.hikari.initialization-fail-timeout", "-1");
 		System.setProperty("spring.datasource.hikari.connection-timeout", "60000");
-		System.setProperty("spring.datasource.hikari.maximum-pool-size", "10");
+		System.setProperty("spring.datasource.hikari.maximum-pool-size", "5");
+		System.setProperty("spring.datasource.hikari.minimum-idle", "1");
 
 		System.setProperty("spring.jpa.hibernate.ddl-auto", "update");
 

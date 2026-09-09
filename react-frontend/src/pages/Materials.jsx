@@ -169,24 +169,29 @@ const Materials = () => {
               return;
           }
 
+          const validLocationId = (locationId && !String(locationId).startsWith('loc-default-')) ? locationId : null;
+
           // Check if a material with this code already exists
           const existingMaterial = allUniqueMaterials.find(r => r.materialCode.toLowerCase() === trimmedCode.toLowerCase());
           
           let targetMaterialId;
 
           if (existingMaterial) {
-              // Reuse existing material ID (keep entry-specific materialName in stock entry!)
+              // Reuse existing material ID
               targetMaterialId = existingMaterial.id;
           } else {
               // Create the new Material
-              const matRes = await api.post('/api/v1/materials', {
+              const matPayload = {
                   name: trimmedName,
                   materialCode: trimmedCode,
                   category: newMat.category || 'Hardware',
                   unit: 'Nos',
-                  minQuantity: 1,
-                  location: { id: locationId }
-              });
+                  minQuantity: 1
+              };
+              if (validLocationId) {
+                  matPayload.location = { id: validLocationId };
+              }
+              const matRes = await api.post('/api/v1/materials', matPayload);
               targetMaterialId = matRes.data.id;
           }
 
@@ -205,7 +210,6 @@ const Materials = () => {
             material: { id: targetMaterialId },
             materialCode: trimmedCode,
             materialName: trimmedName,
-            location: { id: locationId },
             arrivalQuantity: parseFloat(newMat.arrivalQuantity || 0),
             arrivalDate: newMat.arrivalDate || null,
             arrivalTime: formatTime(newMat.arrivalTime),
@@ -215,6 +219,10 @@ const Materials = () => {
             issuedBy: 'INITIAL_STOCK', // Secret flag to hide from Entry Book
             storeInchargeName: currentUser?.name || ''
           };
+          if (validLocationId) {
+              payload.location = { id: validLocationId };
+          }
+
           await api.post('/api/v1/stock-entries', payload);
 
           setNewMat({ name: '', code: '', category: 'Hardware', arrivalQuantity: '', arrivalDate: todayStr, arrivalTime: '', broughtBy: '' });

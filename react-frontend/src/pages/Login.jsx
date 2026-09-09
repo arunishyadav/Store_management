@@ -32,7 +32,6 @@ const defaultLocations = [
 const Login = () => {
   const [country] = useState('India');
   const [stateId, setStateId] = useState('');
-  const [customLocation, setCustomLocation] = useState('');
   const [locations, setLocations] = useState(defaultLocations);
   const [loginType, setLoginType] = useState('Admin Login');
   
@@ -45,19 +44,20 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Silent background warm-up ping so Render backend wakes up while user types User ID and Password
-    const warmup = () => {
+    // Fetch real location UUIDs from backend API on mount
+    const fetchLocations = () => {
       api.get('/api/v1/locations')
         .then(res => {
           if (Array.isArray(res.data) && res.data.length > 0) {
             setLocations(res.data);
+            if (!stateId) {
+              setStateId(res.data[0].id);
+            }
           }
         })
-        .catch(err => console.error('Silent warmup error', err));
+        .catch(err => console.error('Error fetching locations:', err));
     };
-    warmup();
-    const interval = setInterval(warmup, 60000);
-    return () => clearInterval(interval);
+    fetchLocations();
   }, []);
 
   const handleLoginTypeChange = (e) => {
@@ -71,25 +71,28 @@ const Login = () => {
     e.preventDefault();
     setError('');
 
-    const effectiveStateId = stateId || (locations[0] ? locations[0].id : 'loc-default-0');
+    const effectiveStateId = stateId || (locations[0] ? locations[0].id : '');
     setLoading(true);
 
     try {
       const response = await api.post('/api/auth/login', { userId: userId, password: password });
       
       if (response.data.token) {
-        let finalLocation = locations.find(l => l.id === effectiveStateId) || locations[0] || { id: 'default', name: 'Madhya Pradesh' };
+        let finalLocation = null;
         
         if (response.data.role !== 'SUPER_ADMIN' && response.data.locationId && response.data.locationName) {
-          const matched = locations.find(l => l.id === response.data.locationId);
-          finalLocation = matched || { id: response.data.locationId, name: response.data.locationName };
+          // STRICT LOCK for non-Super Admin (Store Incharge / User) to assigned DB location
+          finalLocation = { id: response.data.locationId, name: response.data.locationName };
+        } else {
+          // Super Admin can use selected state or default location
+          finalLocation = locations.find(l => l.id === effectiveStateId) || locations[0] || { id: 'default', name: 'Andhra Pradesh' };
         }
 
         login(response.data.token, { 
           user_id: response.data.userId, 
           name: response.data.fullName, 
           role: response.data.role,
-          location: finalLocation?.name || 'Madhya Pradesh',
+          location: finalLocation?.name || 'Andhra Pradesh',
           locationId: finalLocation?.id
         });
         
@@ -102,28 +105,8 @@ const Login = () => {
       console.error(err);
       if (err.response?.data?.message) {
         setError(err.response.data.message);
-      } else if (err.code === 'ERR_NETWORK' || !err.response) {
-        setError('Server is waking up... Connecting securely...');
-        setTimeout(() => {
-          api.post('/api/auth/login', { userId: userId, password: password })
-            .then(res => {
-              if (res.data.token) {
-                let finalLocation = locations.find(l => l.id === stateId) || locations[0] || { id: 'default', name: 'Madhya Pradesh' };
-                login(res.data.token, { 
-                  user_id: res.data.userId, 
-                  name: res.data.fullName, 
-                  role: res.data.role,
-                  location: finalLocation?.name || 'Madhya Pradesh',
-                  locationId: finalLocation?.id
-                });
-                useAuthStore.getState().updateLocation(finalLocation);
-                navigate('/entry-book');
-              }
-            })
-            .catch(() => setError('Connection failed. Please click Sign In again.'));
-        }, 1500);
       } else {
-        setError('Login failed. Please check your credentials or try again.');
+        setError('Login failed. Invalid User ID or Password.');
       }
     } finally {
       setLoading(false);
@@ -207,7 +190,7 @@ const Login = () => {
               <FormControl fullWidth margin="normal">
                 <Autocomplete
                   options={locations}
-                  getOptionLabel={(option) => option.name}
+                  getOptionLabel={(option) => option.name || ''}
                   value={locations.find(l => l.id === stateId) || null}
                   onChange={(event, newValue) => {
                     setStateId(newValue ? newValue.id : '');

@@ -48,11 +48,23 @@ public class StockEntryService {
 
     @Transactional
     public StockEntry createOrUpdateEntry(StockEntry entry) {
-        // Validate associations
+        // Validate material association
         Material material = materialRepository.findById(entry.getMaterial().getId())
                 .orElseThrow(() -> new RuntimeException("Material not found"));
-        Location location = locationRepository.findById(entry.getLocation().getId())
-                .orElseThrow(() -> new RuntimeException("Location not found"));
+        
+        // Safely resolve location association
+        Location location = null;
+        if (entry.getLocation() != null && entry.getLocation().getId() != null) {
+            try {
+                location = locationRepository.findById(entry.getLocation().getId()).orElse(null);
+            } catch (Exception ignored) {}
+        }
+        if (location == null && material.getLocation() != null) {
+            location = material.getLocation();
+        }
+        if (location == null) {
+            location = locationRepository.findAll().stream().findFirst().orElseThrow(() -> new RuntimeException("Location not found"));
+        }
         
         entry.setMaterial(material);
         entry.setLocation(location);
@@ -63,16 +75,16 @@ public class StockEntryService {
         StockEntry savedEntry = stockEntryRepository.save(entry);
         
         // Notify via WebSocket
-        messagingTemplate.convertAndSend("/topic/location/" + location.getId(), "STOCK_UPDATED");
+        try {
+            messagingTemplate.convertAndSend("/topic/location/" + location.getId(), "STOCK_UPDATED");
+        } catch(Exception ignored) {}
         
         if (isUpdate) {
             try {
                 User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
                 String dataDetails = "Entry ID: " + savedEntry.getId() + "\nBill No: " + savedEntry.getBillNumber() + "\nQuantity: " + savedEntry.getArrivalQuantity();
                 emailService.sendAuditEmail(currentUser, "UPDATED", dataDetails, location.getName());
-            } catch(Exception e) {
-                // Ignore if no auth context (e.g. during seeding)
-            }
+            } catch(Exception e) {}
         }
         
         return savedEntry;
@@ -81,12 +93,16 @@ public class StockEntryService {
     @Transactional
     public void deleteEntry(UUID id) {
         stockEntryRepository.findById(id).ifPresent(entry -> {
-            UUID locationId = entry.getLocation().getId();
-            String locationName = entry.getLocation().getName();
-            String dataDetails = "Deleted Entry Bill No: " + entry.getBillNumber() + "\nMaterial: " + entry.getMaterial().getName();
+            UUID locationId = entry.getLocation() != null ? entry.getLocation().getId() : null;
+            String locationName = entry.getLocation() != null ? entry.getLocation().getName() : "Unknown";
+            String dataDetails = "Deleted Entry Bill No: " + entry.getBillNumber() + "\nMaterial: " + (entry.getMaterial() != null ? entry.getMaterial().getName() : "N/A");
             
             stockEntryRepository.delete(entry);
-            messagingTemplate.convertAndSend("/topic/location/" + locationId, "STOCK_UPDATED");
+            if (locationId != null) {
+                try {
+                    messagingTemplate.convertAndSend("/topic/location/" + locationId, "STOCK_UPDATED");
+                } catch(Exception ignored) {}
+            }
             
             try {
                 User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

@@ -1,7 +1,10 @@
 package com.finsen.store.controller;
 
 import com.finsen.store.entity.Material;
+import com.finsen.store.entity.Location;
 import com.finsen.store.repository.MaterialRepository;
+import com.finsen.store.repository.LocationRepository;
+import com.finsen.store.repository.StockEntryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,7 +25,10 @@ public class MaterialController {
     private MaterialRepository materialRepository;
     
     @Autowired
-    private com.finsen.store.repository.StockEntryRepository stockEntryRepository;
+    private LocationRepository locationRepository;
+    
+    @Autowired
+    private StockEntryRepository stockEntryRepository;
     
     @Autowired
     private EmailService emailService;
@@ -49,8 +55,20 @@ public class MaterialController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'STORE_INCHARGE')")
-    public Material createMaterial(@RequestBody Material material) {
-        return materialRepository.save(material);
+    public ResponseEntity<Material> createMaterial(@RequestBody Material material) {
+        Location loc = null;
+        if (material.getLocation() != null && material.getLocation().getId() != null) {
+            try {
+                loc = locationRepository.findById(material.getLocation().getId()).orElse(null);
+            } catch (Exception ignored) {}
+        }
+        if (loc == null) {
+            loc = locationRepository.findAll().stream().findFirst().orElse(null);
+        }
+        material.setLocation(loc);
+        material.setActive(true);
+        Material saved = materialRepository.save(material);
+        return ResponseEntity.ok(saved);
     }
 
     @PutMapping("/{id}")
@@ -63,7 +81,12 @@ public class MaterialController {
                     material.setCategory(materialDetails.getCategory());
                     material.setUnit(materialDetails.getUnit());
                     material.setMinQuantity(materialDetails.getMinQuantity());
-                    material.setLocation(materialDetails.getLocation());
+                    if (materialDetails.getLocation() != null && materialDetails.getLocation().getId() != null) {
+                        try {
+                            Location loc = locationRepository.findById(materialDetails.getLocation().getId()).orElse(null);
+                            if (loc != null) material.setLocation(loc);
+                        } catch (Exception ignored) {}
+                    }
                     material.setActive(materialDetails.isActive());
                     Material saved = materialRepository.save(material);
                     

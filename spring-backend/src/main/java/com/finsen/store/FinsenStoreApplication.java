@@ -9,7 +9,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class FinsenStoreApplication {
 
 	public static void main(String[] args) {
-		System.setProperty("server.port", "8080");
+		String envPort = System.getenv("PORT");
+		if (envPort != null && !envPort.trim().isEmpty()) {
+			System.setProperty("server.port", envPort.trim());
+		} else {
+			System.setProperty("server.port", "8080");
+		}
 
 		String neonUrl = System.getenv("SPRING_DATASOURCE_URL");
 		if (neonUrl == null || neonUrl.isEmpty()) {

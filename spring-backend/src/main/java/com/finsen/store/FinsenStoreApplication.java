@@ -32,11 +32,17 @@ public class FinsenStoreApplication {
 		System.setProperty("spring.datasource.url", neonUrl);
 		System.setProperty("spring.datasource.username", neonUser);
 		System.setProperty("spring.datasource.password", neonPass);
-		System.setProperty("spring.datasource.driver-class-name", "org.postgresql.Driver");
 
-		// Hibernate Dialect Properties
-		System.setProperty("spring.jpa.database-platform", "org.hibernate.dialect.PostgreSQLDialect");
-		System.setProperty("spring.jpa.properties.hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
+		if (neonUrl.startsWith("jdbc:mysql:")) {
+			System.setProperty("spring.datasource.driver-class-name", "com.mysql.cj.jdbc.Driver");
+			System.setProperty("spring.jpa.database-platform", "org.hibernate.dialect.MySQLDialect");
+			System.setProperty("spring.jpa.properties.hibernate.dialect", "org.hibernate.dialect.MySQLDialect");
+		} else {
+			System.setProperty("spring.datasource.driver-class-name", "org.postgresql.Driver");
+			System.setProperty("spring.jpa.database-platform", "org.hibernate.dialect.PostgreSQLDialect");
+			System.setProperty("spring.jpa.properties.hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
+		}
+
 		System.setProperty("spring.jpa.properties.hibernate.temp.use_jdbc_metadata_defaults", "false");
 
 		// HikariCP Resilience
